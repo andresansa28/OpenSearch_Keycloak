@@ -1,0 +1,23 @@
+{
+  "opensearch_configured": "True",
+  "MaxMind_GeoDB_Key": "",
+  "pcapFolder": "pcaps/",
+  "delay": 40,
+  "zeek_path": "/usr/local/zeek/bin/zeek",
+  "greynoise_api_key": "5ae9wOgoA9SWXnrY7u1S09drGy509e4MOYnLP39YZ5Pqi3oADIiQMIiBtjfdTW88",
+  "RemoteDeployments": [
+    {
+      "name": "andre28",
+      "IP": "192.168.161.57",
+      "user": "andre28",
+      "passw": "1234",
+      "active": true,
+      "Containers": [
+        {
+          "IP": "192.168.161.176",
+          "name": "PLC1"
+        }
+      ]
+    }
+  ]
+}
