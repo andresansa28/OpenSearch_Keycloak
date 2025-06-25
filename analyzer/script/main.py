@@ -24,8 +24,6 @@ import interaction_calc
 
 auth = ('admin', 'admin')  # For testing only. Don't store credentials in code.
 
-print("ciao prova")
-
 
 with open("../Config.json", "r") as jsonfile:
     data = json.load(jsonfile)

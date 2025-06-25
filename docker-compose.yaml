@@ -95,6 +95,8 @@ services:
       - 5001:5001
     volumes:
       - ./analyzer/Config.json:/webapp_analyzer_bridge/Config.json
+      - ./webapp_analyzer_bridge/app/main.py:/webapp_analyzer_bridge/app/main.py
+      
     networks:
       framework:
         ipv4_address: 172.18.0.7
@@ -111,6 +113,8 @@ services:
   backend:
     build:
       ./pythonFastAPI/
+    volumes:
+      - ./pythonFastAPI/app:/code/app
     ports:
       - "5000:80"
     networks:

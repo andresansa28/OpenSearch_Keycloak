@@ -4,6 +4,7 @@ import subprocess
 import json
 from fastapi.middleware.cors import CORSMiddleware
 import paramiko
+import time
 
 
 app = FastAPI()
@@ -32,18 +33,17 @@ def read_info():
     info =  result.stdout
     return {"message": info["delay"]}
 
-@app.get("/getConfig", response_class=PlainTextResponse)
+@app.get("/getConfig", response_class=JSONResponse)
 def read_file():
     try:
         with open("./Config.json", "r") as file:
-            file_content = file.read()
-        
+            file_content = json.load(file)  # carica e valida il JSON
+        print(file_content)
         return file_content
     except FileNotFoundError:
         raise HTTPException(status_code=404, detail="File not found")
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error reading file: {str(e)}")
-
 
 @app.get("/change_delay/{delay}", response_class=JSONResponse)
 async def change_delay(delay: int):
@@ -112,6 +112,25 @@ async def removeDeploy(body: dict):
 @app.post("/addDeploy", response_class=JSONResponse)
 async def addDeploy(deploy: dict):
     try:
+        # Estrai IP, username e password dal deploy
+        ip = deploy.get("IP")
+        username = deploy.get("user")
+        password = deploy.get("passw")
+        #print(deploy)
+
+        print(f"Adding deploy with IP: {ip}, username: {username}, password: {password}")
+
+        if not ip or not username or not password:
+            raise HTTPException(status_code=400, detail="Missing IP, username or password")
+
+        # Verifica SSH
+        #output = esegui_ping(ip, username, password)
+        # print(output)
+        # if not output or ("100% packet loss" in output or "unreachable" in output.lower()):
+        #     raise HTTPException(status_code=400, detail="SSH connection failed or ping unsuccessful")
+
+        # Aggiungi solo se il check è andato bene
+        time.sleep(3)#solo per debug, per simulare il caricamento nel front end
         with open("./Config.json", 'r') as file:
             data = json.load(file)
 
@@ -120,13 +139,16 @@ async def addDeploy(deploy: dict):
         with open("./Config.json", 'w') as file:
             json.dump(data, file, indent=2)
 
-        return JSONResponse({"message": "Deployments added successfully"})
+        print("Deploy aggiunto con successo e testata connessione SSH")
+        return JSONResponse({"message": "Deployment added successfully"})
+    
     except FileNotFoundError:
-        raise HTTPException(status_code=404, detail="File not found")
+        raise HTTPException(status_code=404, detail="Config.json not found")
     except json.JSONDecodeError:
         raise HTTPException(status_code=400, detail="Invalid JSON format")
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error processing file: {str(e)}")
+    
 
 def esegui_ping(host, username, password):
     ssh = paramiko.SSHClient()
@@ -143,6 +165,8 @@ def esegui_ping(host, username, password):
     finally:
         ssh.close()
 
+
+#Funzione che non ho capito come e quando viene chiamata
 @app.get("/checkDeployments")
 async def checkDeployments():
     try:

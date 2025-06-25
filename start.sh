@@ -73,6 +73,15 @@ if test -f "$FILE"; then
             sleep 1
         done
     docker compose up -d os01 dashboards
+    while true; do
+        RESPONSE=$(curl -sk -u admin:admin https://localhost:9200/_cluster/health)
+    
+        if [[ "$RESPONSE" == *"cluster_name"* ]]; then
+            break
+        else
+            sleep 1
+        fi
+    done
     docker compose up -d analyzer
     docker compose up -d backend
     docker compose up -d webapp_analyzer_bridge
