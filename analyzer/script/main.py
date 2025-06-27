@@ -2,7 +2,17 @@ import json
 import os
 import sched
 import subprocess
+import threading
 import time
+
+import logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='[%(asctime)s] %(filename)s:%(lineno)d - %(funcName)s() - %(levelname)s: %(message)s'
+)
+
+# Disabilita i log di paramiko e delle sue sottolibrerie
+logging.getLogger("paramiko").setLevel(logging.WARNING)
 
 import numpy as np
 import pandas as pd
@@ -42,6 +52,9 @@ app.add_middleware(
 )
 
 my_scheduler = sched.scheduler(time.time, time.sleep)
+event = None
+running = False
+counter = 0 #aggiungerla al get_pcaps per tenere traccia delle riprogrammazioni effettuate
 
 es = OpenSearch(
     [{'host': '172.17.0.1', 'port': 9200}],
@@ -62,7 +75,12 @@ def get_remote_deployments():
 
 def bulk_load(vm_name, plc_name, path_log):
     def generate_docs():
+        logging.info(f"path log: {path_log}")
         logList = os.listdir(path_log)
+        logging.info(f"log list: {logList}")
+        if "conn.log" not in logList:
+            logging.warning(f"'conn.log' not found in {path_log}. Skipping bulk load.")
+            return  #Significa che non ha ricevuto nessuna connessione
         conlog = logList.index("conn.log")
         logList.insert(0, logList.pop(conlog))
         for log in tqdm(logList, leave=False):
@@ -120,7 +138,8 @@ def bulk_load(vm_name, plc_name, path_log):
     return res
 
 
-def load_jsons(tenant, jsons_path):
+#Serviva a Mattia, non serve per il funzionamento generale del progetto
+""" def load_jsons(tenant, jsons_path):
     def generate_docs():
         for log in tqdm(os.listdir(jsons_path), leave=False):
             if log.endswith(".json"):
@@ -189,9 +208,11 @@ def load_jsons(tenant, jsons_path):
 
     res = helpers.bulk(es, generate_docs())
     return res
-
+ """
 
 def run_zeek(standard=True):
+    logging.info("Inizio metodo run_zeek")
+    
     for dirs in os.listdir(pcapPath):
         for pcap in os.listdir(pcapPath + dirs):
             if os.path.exists(pcapPath + dirs + "/LOGS/"):
@@ -234,60 +255,93 @@ def create_sh(container_list):
             file.close()
 
 
+
+#Metodo eseguito dallo scheduler ogni delay secondi
 def get_pcap(scheduler):
-    scheduler.enter(delay, 1, get_pcap, (scheduler,))
-    for vm in get_remote_deployments():
-        remote_host = ssh_management.Host(host_ip=vm["IP"],
-                                          username=vm["user"],
-                                          password=vm["passw"]
-                                          )
-        result = remote_host.run_command("ls").stdout.split()
+    global running
+    
+    if not running:
+        logging.info("Scheduler interrotto, uscita dal ciclo get_pcap")
+        return
 
-        if "capture.sh" not in result:
-            create_sh(vm["Containers"])
-            remote_host.put_script("capture.sh", "capture.sh")
-            remote_host.run_command("mkdir captures")
-            remote_host.run_command("sudo chmod +x capture.sh")
-            os.remove("capture.sh")
+    try:
+        
+        logging.info("Avvio get_pcap prova prova...")
+        # Avvia la logica principale
+        for vm in get_remote_deployments():
+            remote_host = ssh_management.Host(
+                host_ip=vm["IP"],
+                username=vm["user"],
+                password=vm["passw"]
+            )
+            result = remote_host.run_command("ls").stdout.split()
 
-        if os.path.exists(pcapPath + vm["name"]):
-            print(os.path.exists(pcapPath + vm["name"]))
-            result = remote_host.run_command("ls captures").stdout.split()
-            remote_host.run_command("sudo pkill -F tcpdump.pid")
-            remote_host.run_command("sudo rm tcpdump.pid")
-            for pcap in result:
-                remote_host.get_pcap('captures/' + pcap, pcapPath + vm["name"] + "/")
-                remote_host.run_command("sudo rm captures/" + pcap)
-            remote_host.run_command("sudo ./capture.sh")
-        else:
-            os.makedirs(pcapPath + vm["name"])
-    run_zeek()
-    print("Pull Complete")
+            if "capture.sh" not in result:
+                create_sh(vm["Containers"])
+                remote_host.put_script("capture.sh", "capture.sh")
+                remote_host.run_command("mkdir captures")
+                remote_host.run_command("sudo chmod +x capture.sh")
+                os.remove("capture.sh")
 
+            if os.path.exists(pcapPath + vm["name"]):
+                result = remote_host.run_command("ls captures").stdout.split()
+                remote_host.run_command("sudo pkill -F tcpdump.pid")
+                remote_host.run_command("sudo rm tcpdump.pid")
+                for pcap in result:
+                    remote_host.get_pcap('captures/' + pcap, pcapPath + vm["name"] + "/")
+                    remote_host.run_command("sudo rm captures/" + pcap)
+                    print(str(pcap)+" eliminato",True)
+                remote_host.run_command("sudo ./capture.sh")
+                print("Metodo per la cattura dei pacchetti sulla vm remota avviato",True)
+            else:
+                os.makedirs(pcapPath + vm["name"])
 
-if data["MaxMind_GeoDB_Key"] != "":
-    geoip_updater.update_db(data["MaxMind_GeoDB_Key"])
-if data["opensearch_configured"] == "False":
-    opensearch_management.opensearch_first_setup(es, get_remote_deployments())
-    data["opensearch_configured"] = "True"
-    with open("../Config.json", "w") as jsonfile:
-        json.dump(data, jsonfile, indent=2)
+        run_zeek()
+        logging.info("Pull Complete")
 
-UPLOAD_FOLDER = "jsons"
+        # Riprogramma solo se tutto è andato bene
+        if running:
+            event = scheduler.enter(delay, 1, get_pcap, (scheduler,))
+            logging.info("Scheduler riprogrammato con successo")
 
+    except Exception as e:
+        logging.error(f"Errore durante l'esecuzione di get_pcap: {e}")
+        running = False  # FERMA il ciclo
 
 @app.get("/start")
 def start_service():
-    global event
-    my_scheduler.run()
+    global running, event
+    if running:
+        return "Service already running"
+    running = True
+    event = my_scheduler.enter(0, 1, get_pcap, (my_scheduler,))
+    threading.Thread(target=my_scheduler.run, daemon=True).start()
     return "Service started"
-
 
 @app.get("/stop")
 def stop_service():
-    global event
-    my_scheduler.cancel(event)
+    global running, event
+    running = False
+    logging.info("Analyzer stoppato, non verrà più riprogrammato")
+    if event in my_scheduler.queue:
+        try:
+            my_scheduler.cancel(event)
+            logging.info("Analyzer stoppato correttamente")
+        except Exception:
+            pass
     return "Service stopped"
+
+
+@app.get("/status")
+def service_status():
+    global running
+    return {"running": running}
+
+
+""" La chiamata a my_scheduler.cancel(event) tenta di cancellare l'evento schedulato successivo.
+Se get_pcap è già in esecuzione nel thread, lo stop farà terminare la prossima chiamata, ma non interromperà 
+subito la chiamata attuale (perché sched.scheduler non è preemptive).
+ """
 
 
 @app.get("/run_zeek")
@@ -324,4 +378,6 @@ def force_opensearch_config():
     return "Opensearch configured"
 
 
-event = my_scheduler.enter(0, 1, get_pcap, (my_scheduler,))
+
+
+

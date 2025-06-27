@@ -1,3 +1,4 @@
+import ipaddress
 import json
 import os
 
@@ -40,66 +41,97 @@ def greynoise(es, log_name, conn_dataframe, apikey):
             }
         }
         es.indices.create(index=log_name, body=json.dumps(mapping))
+        
+        
+    def is_private_ip(ip):
+        try:
+            return ipaddress.ip_address(ip).is_private
+        except ValueError:
+            return False
 
     def generate_docs():
         print("Ip to analyze: " + str(len(ips)))
 
+        # Carica IP da file se presente
         if os.stat("iptoanalyze").st_size != 0:
             with open('iptoanalyze', 'rb') as fp:
                 ipss = ipslist.append(pickle.load(fp))
         else:
             ipss = ipslist
+
         if ipss is not None:
             for ip in tqdm(ipss):
-                query = {"size": 0,
-                         "query":
-                             {"match":
-                                 {
-                                     "id.orig_h": "%s" % ip
-                                 }
-                             }
-                         }
+                query = {
+                    "size": 0,
+                    "query": {
+                        "match": {
+                            "id.orig_h": ip
+                        }
+                    }
+                }
+
+                # Controlla se è già presente su OpenSearch
                 s = es.search(index=log_name, body=json.dumps(query))["hits"]["total"]["value"]
                 if s == 0:
-                    url = "https://api.greynoise.io/v3/community/" + ip
-                    try:
-                        r = requests.get(url, headers={'accept': 'application/json', 'key': apikey})
-                        if r.status_code == 200 or r.status_code == 400:
-                            d = r.json()
-                            noise_profile = {}
-                            if "error" not in d:
-                                noise_profile = d
-                                noise_profile["id.orig_h"] = noise_profile.pop("ip")
-                                noise_profile["actor"] = noise_profile.pop("name")
-                                with geoip2.database.Reader('GeoLite2DB/GeoLite2-City.mmdb') as reader:
-                                    try:
-                                        response = reader.city(ip)
-                                        noise_profile["geo.orig.point"] = {"lat": response.location.latitude,
-                                                                           "lon": response.location.longitude}
-                                        noise_profile["geo.orig.country"] = response.country.name
-                                    except AddressNotFoundError:
-                                        noise_profile["geo.orig.point"] = {"lat": 0, "lon": 0}
-                                        pass
-                            elif r.status_code == 400:
-                                noise_profile = {"id.orig_h": ip, "classification": "blank"}
+                    noise_profile = {
+                        "id.orig_h": ip
+                    }
 
-                            doc = {
-                                "_index": log_name,
-                                "_source": noise_profile
-                            }
+                    if is_private_ip(ip):
+                        # IP privato: niente GreyNoise o GeoIP
+                        print("Richiesta da ip locale")
+                        noise_profile["classification"] = "private"
 
-                            yield doc
+                    else:
+                        # IP pubblico: interroga GreyNoise
+                        url = f"https://api.greynoise.io/v3/community/{ip}"
+                        try:
+                            r = requests.get(url, headers={'accept': 'application/json', 'key': apikey})
 
-                        if r.status_code == 429:
-                            with open('iptoanalyze', 'wb') as fp:
-                                pickle.dump(ipss, fp)
-                            
-                            print("API Limit")
-                            break
-                            
-                    except requests.exceptions.RequestException as e:
-                        pass
+                            if r.status_code == 429:
+                                # GreyNoise ha bloccato per superamento limiti
+                                with open('iptoanalyze', 'wb') as fp:
+                                    pickle.dump(ipss, fp)
+                                print("API Limit")
+                                break
 
+                            if r.status_code in [200, 400]:
+                                d = r.json()
+                                if "error" not in d:
+                                    noise_profile.update(d)
+                                    noise_profile["id.orig_h"] = noise_profile.pop("ip", ip)
+                                    noise_profile["actor"] = noise_profile.pop("name", "unknown")
+
+                                    # GeoIP Lookup
+                                    with geoip2.database.Reader('GeoLite2DB/GeoLite2-City.mmdb') as reader:
+                                        try:
+                                            response = reader.city(ip)
+                                            noise_profile["geo.orig.point"] = {
+                                                "lat": response.location.latitude,
+                                                "lon": response.location.longitude
+                                            }
+                                            noise_profile["geo.orig.country"] = response.country.name
+                                        except AddressNotFoundError:
+                                            noise_profile["geo.orig.point"] = {"lat": 0, "lon": 0}
+                                            noise_profile["geo.orig.country"] = "Unknown"
+                                else:
+                                    noise_profile["classification"] = "blank"
+
+                        except requests.exceptions.RequestException as e:
+                            # Qualsiasi errore HTTP non blocca il processo
+                            print(f"Request error for IP {ip}: {e}")
+                            continue
+
+                    # Genera documento da inviare a OpenSearch
+                    doc = {
+                        "_index": log_name,
+                        "_source": noise_profile
+                    }
+
+                    yield doc
+                    print("Documento creato")
+
+    
     docs = generate_docs()
     if docs is not None:
         res = helpers.bulk(es, docs)
