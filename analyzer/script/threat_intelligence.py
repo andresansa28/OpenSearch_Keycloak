@@ -77,6 +77,7 @@ def greynoise(es, log_name, conn_dataframe, apikey):
                         "id.orig_h": ip
                     }
 
+                    # Controlla se è un IP privato
                     if is_private_ip(ip):
                         # IP privato: niente GreyNoise o GeoIP
                         print("Richiesta da ip locale")
