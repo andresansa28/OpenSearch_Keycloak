@@ -1,6 +1,6 @@
 <div class="config_container">
   <p-card>
-    <h1>Configurazione prova prova ciaone</h1>
+    <h1>Configurazione a</h1>
     <div class="conf_grid1">
       <div>
         <h3>Geo_DB Key</h3>
@@ -36,6 +36,15 @@
       <div class="analyzer_button_container">
         <div>
           <h1>Analyzer</h1>
+          <span 
+            [ngStyle]="{
+              'font-size': '1.2rem',
+              'font-weight': 'bold',
+              'color': analyzerRunning ? 'green' : 'red'
+            }"
+          >
+            Running = {{ analyzerRunning }}
+          </span>
         </div>
         <button
           pButton

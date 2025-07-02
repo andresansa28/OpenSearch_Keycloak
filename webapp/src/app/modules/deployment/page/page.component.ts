@@ -1,5 +1,5 @@
 import { HttpClient, HttpResponse } from '@angular/common/http';
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, OnDestroy } from '@angular/core';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { AnalyzerService } from 'src/app/services/analyzer.service';
 import { ConfigService } from 'src/app/services/config.service';
@@ -8,13 +8,14 @@ import {
   DeployModel,
   DeploymentsModel,
 } from 'src/app/shared/deploymentModels/deploymentsModel';
+import { interval, Subscription } from 'rxjs';
 
 @Component({
   selector: 'app-deployment',
   templateUrl: './page.component.html',
   styleUrls: ['./page.component.scss'],
 })
-export class DeploymentComponent implements OnInit {
+export class DeploymentComponent implements OnInit, OnDestroy {
   button_green: string = 'button_green';
   button_red: string = 'button_red';
   isDivActive: boolean = true;
@@ -38,6 +39,9 @@ export class DeploymentComponent implements OnInit {
   isLoadingDeploy: boolean = false;
   isLoadingSetup: boolean = false;
   isLoadingStart: boolean = false;
+  analyzerRunning: boolean = false;
+
+  private statusSubscription: Subscription | null = null;
 
   constructor(
     private http: HttpClient,
@@ -51,6 +55,29 @@ export class DeploymentComponent implements OnInit {
     //   this.ips = res;
     // });
     this.initDeployments();
+    this.updateAnalyzerStatus();
+
+    // Controlla lo stato dell'analyzer ogni 10 secondi
+    // effettua le chiamate solo se la pagina è visibile
+    this.statusSubscription = interval(10000).subscribe(() => {
+      if (document.visibilityState === 'visible') {
+        this.analyzerS.getIsRunning().subscribe({
+          next: (res) => {
+            this.analyzerRunning = !!res.running;
+          },
+          error: () => {
+            this.analyzerRunning = false;
+          }
+        });
+      }
+    });
+    
+  }
+
+  ngOnDestroy(): void {
+    if (this.statusSubscription) {
+      this.statusSubscription.unsubscribe();
+    }
   }
 
   // async function to active div
@@ -197,21 +224,34 @@ export class DeploymentComponent implements OnInit {
     }
   }
 
+  updateAnalyzerStatus(): void {
+    this.analyzerS.getStatus().subscribe({
+      next: (res: any) => {
+        // Supponiamo che la risposta sia { running: true/false }
+        this.analyzerRunning = !!res.running;
+      },
+      error: () => {
+        this.analyzerRunning = false;
+      }
+    });
+  }
+
   startAnalyzer(): void {
     this.isLoadingStart = true;
-
     this.analyzerS.start().subscribe({
       next: (res: any) => {
         console.log(res);
         this._snackBar.open('Analyzer avviato con successo!', 'Chiudi', {
           duration: 3000,
         });
+        this.updateAnalyzerStatus();
       },
       error: () => {
         this._snackBar.open("Errore nell'avvio dell'analyzer", 'Chiudi', {
           duration: 5000,
         });
         this.isLoadingStart = false;
+        this.updateAnalyzerStatus();
       },
       complete: () => {
         this.isLoadingStart = false;
@@ -220,8 +260,14 @@ export class DeploymentComponent implements OnInit {
   }
 
   stopAnalyzer(): void {
-    this.analyzerS.stop().subscribe((res: any) => {
-      console.log(res);
+    this.analyzerS.stop().subscribe({
+      next: (res: any) => {
+        console.log(res);
+        this.updateAnalyzerStatus();
+      },
+      error: () => {
+        this.updateAnalyzerStatus();
+      }
     });
   }
 
@@ -267,4 +313,8 @@ export class DeploymentComponent implements OnInit {
     };
     this.Containers_input.push(container);
   }
+
+  
+  
+
 }

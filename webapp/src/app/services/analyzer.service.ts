@@ -27,4 +27,12 @@ export class AnalyzerService {
   run_zeek() {
     return this.http.get(`${this.url}/run_zeek?standard=False`);
   }
+
+  getStatus() {
+    return this.http.get(`${this.url}/status`);
+  }
+
+  getIsRunning() {
+    return this.http.get<{ running: boolean }>('/status');
+  }
 }
