@@ -101,11 +101,24 @@ services:
       framework:
         ipv4_address: 172.18.0.7
 
+  # webapp:
+  #   build:
+  #     ./webapp/
+  #   ports:
+  #     - "5002:80"
+  #   networks:
+  #     framework:
+  #       ipv4_address: 172.18.0.8
+
   webapp:
     build:
-      ./webapp/
+      context: ./webapp
+      dockerfile: Dockerfile.dev
+    volumes:
+      - ./webapp:/app
+      - /app/node_modules
     ports:
-      - "5002:80"
+      - "4200:4200"
     networks:
       framework:
         ipv4_address: 172.18.0.8
