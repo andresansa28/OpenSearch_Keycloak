@@ -154,15 +154,34 @@
                       <mat-icon matListItemIcon>developer_board</mat-icon>
                       <div matListItemTitle>{{container.name}}</div>
                       <div matListItemLine>{{container.IP}}</div>
-                      <button mat-icon-button color="warn" (click)="removePlcIp(i)">
-                        <mat-icon>delete</mat-icon>
-                      </button>
+                      
+                      <!-- Bottoni di azione per ogni PLC -->
+                      <div matListItemMeta class="plc-actions" 
+                           style="display: flex; gap: 8px; align-items: center;">
+                        <button mat-icon-button color="primary" 
+                                (click)="editPlc(i)" 
+                                [disabled]="isEditingPlc && editingPlcIndex !== i"
+                                matTooltip="Modifica PLC">
+                          <mat-icon>edit</mat-icon>
+                        </button>
+                        <button mat-icon-button color="warn" 
+                                (click)="removePlcIp(i)"
+                                [disabled]="isEditingPlc"
+                                matTooltip="Rimuovi PLC">
+                          <mat-icon>delete</mat-icon>
+                        </button>
+                      </div>
                     </mat-list-item>
                   </mat-list>
                 </div>
 
-                <!-- Add PLC Form -->
+                <!-- Add/Edit PLC Form -->
                 <div class="add-plc-form">
+                  <h4 *ngIf="isEditingPlc" style="color: #ff9800; margin-bottom: 16px;">
+                    <mat-icon style="vertical-align: middle; margin-right: 8px;">edit</mat-icon>
+                    Modifica PLC: {{Containers_input[editingPlcIndex]?.name}}
+                  </h4>
+                  
                   <mat-form-field appearance="outline">
                     <mat-label>Nome PLC</mat-label>
                     <input matInput [(ngModel)]="add_container_name_input" placeholder="PLC-001">
@@ -175,10 +194,31 @@
                     <mat-icon matSuffix>router</mat-icon>
                   </mat-form-field>
                   
-                  <button mat-raised-button color="accent" (click)="addPlcIp()">
-                    <mat-icon>add</mat-icon>
-                    Aggiungi PLC
-                  </button>
+                  <div class="plc-form-buttons">
+                    <!-- Bottoni per modalità normale (aggiunta) -->
+                    <button *ngIf="!isEditingPlc" 
+                            mat-raised-button color="accent" 
+                            (click)="addPlcIp()">
+                      <mat-icon>add</mat-icon>
+                      Aggiungi PLC
+                    </button>
+                    
+                    <!-- Bottoni per modalità modifica -->
+                    <div *ngIf="isEditingPlc" class="edit-plc-buttons" 
+                         style="display: flex; align-items: center; gap: 8px; justify-content: space-between;">
+                      <button mat-button color="warn" 
+                              (click)="cancelPlcEdit()">
+                        <mat-icon>cancel</mat-icon>
+                        Annulla
+                      </button>
+                      <button mat-raised-button color="primary" 
+                              (click)="updatePlc()"
+                              [disabled]="!add_container_name_input || !add_container_ip_input">
+                        <mat-icon>update</mat-icon>
+                        Aggiorna PLC
+                      </button>
+                    </div>
+                  </div>
                 </div>
               </div>
               

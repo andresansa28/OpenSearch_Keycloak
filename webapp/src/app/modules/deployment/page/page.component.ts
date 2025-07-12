@@ -54,6 +54,10 @@ export class DeploymentComponent implements OnInit, OnDestroy {
   deploymentBeingEdited: DeployModel | null = null;
   originalDeploymentIP: string = '';
 
+  // Variabili per la modifica dei PLC
+  editingPlcIndex: number = -1;
+  isEditingPlc: boolean = false;
+
   @ViewChild('stepper') stepper!: MatStepper;
 
   private statusSubscription: Subscription | null = null;
@@ -343,15 +347,93 @@ export class DeploymentComponent implements OnInit, OnDestroy {
     });
   }
 
+  // Metodi per la gestione dei PLC
+  editPlc(index: number): void {
+    this.editingPlcIndex = index;
+    this.isEditingPlc = true;
+
+    // Popola i campi con i dati del PLC da modificare
+    const plc = this.Containers_input[index];
+    this.add_container_name_input = plc.name;
+    this.add_container_ip_input = plc.IP;
+
+    this._snackBar.open('Modalità modifica PLC attivata', 'Chiudi', {
+      duration: 2000
+    });
+  }
+
+  updatePlc(): void {
+    if (!this.add_container_name_input || !this.add_container_ip_input) {
+      this._snackBar.open('Inserire nome e IP del PLC!', 'Chiudi', {
+        duration: 3000
+      });
+      return;
+    }
+
+    if (this.editingPlcIndex >= 0 && this.editingPlcIndex < this.Containers_input.length) {
+      // Aggiorna il PLC esistente
+      this.Containers_input[this.editingPlcIndex] = {
+        name: this.add_container_name_input,
+        IP: this.add_container_ip_input
+      };
+
+      this._snackBar.open('PLC aggiornato con successo!', 'Chiudi', {
+        duration: 2000
+      });
+
+      // Pulisce i campi senza mostrare messaggio di annullamento
+      this.clearPlcEditFields();
+    }
+  }
+
+  cancelPlcEdit(): void {
+    this.clearPlcEditFields();
+
+    this._snackBar.open('Modifica PLC annullata', 'Chiudi', {
+      duration: 2000
+    });
+  }
+
+  private clearPlcEditFields(): void {
+    this.editingPlcIndex = -1;
+    this.isEditingPlc = false;
+    this.add_container_name_input = '';
+    this.add_container_ip_input = '';
+  }
+
   addPlcIp(): void {
     if (this.add_container_ip_input == '') {
       return;
     }
+
+    if (this.isEditingPlc) {
+      // Se siamo in modalità modifica PLC, aggiorna invece di aggiungere
+      this.updatePlc();
+      return;
+    }
+
+    // Controlla se l'IP è già presente
+    const existingPlc = this.Containers_input.find(container => container.IP === this.add_container_ip_input);
+    if (existingPlc) {
+      this._snackBar.open('Un PLC con questo IP è già presente!', 'Chiudi', {
+        duration: 3000
+      });
+      return;
+    }
+
     var container: Container = {
       IP: this.add_container_ip_input,
-      name: this.add_container_name_input,
+      name: this.add_container_name_input || `PLC-${this.Containers_input.length + 1}`,
     };
     this.Containers_input.push(container);
+
+    // Pulisci i campi dopo l'aggiunta
+    this.add_container_name_input = '';
+    this.add_container_ip_input = '';
+
+    this._snackBar.open('PLC aggiunto con successo!', 'Chiudi', {
+      duration: 2000
+    });
   }
 
   checkDeploymentsStatus(): void {
@@ -422,6 +504,12 @@ export class DeploymentComponent implements OnInit, OnDestroy {
     this.isEditMode = false;
     this.deploymentBeingEdited = null;
     this.originalDeploymentIP = '';
+
+    // Annulla anche eventuali modifiche PLC in corso
+    if (this.isEditingPlc) {
+      this.clearPlcEditFields();
+    }
+
     this.clearForm();
 
     // Reset del stepper al primo step
@@ -513,6 +601,10 @@ export class DeploymentComponent implements OnInit, OnDestroy {
     this.Containers_input = [];
     this.add_container_ip_input = '';
     this.add_container_name_input = '';
+
+    // Pulisci anche le variabili di modifica PLC
+    this.editingPlcIndex = -1;
+    this.isEditingPlc = false;
   }
 
   private scrollToForm(): void {
