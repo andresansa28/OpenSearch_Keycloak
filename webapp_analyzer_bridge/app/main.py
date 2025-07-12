@@ -116,21 +116,18 @@ async def addDeploy(deploy: dict):
         ip = deploy.get("IP")
         username = deploy.get("user")
         password = deploy.get("passw")
-        #print(deploy)
-
         print(f"Adding deploy with IP: {ip}, username: {username}, password: {password}")
-
         if not ip or not username or not password:
             raise HTTPException(status_code=400, detail="Missing IP, username or password")
 
         # Verifica SSH
-        #output = esegui_ping(ip, username, password)
+        # output = esegui_ping(ip, username, password)
         # print(output)
         # if not output or ("100% packet loss" in output or "unreachable" in output.lower()):
         #     raise HTTPException(status_code=400, detail="SSH connection failed or ping unsuccessful")
 
         # Aggiungi solo se il check è andato bene
-        time.sleep(3)#solo per debug, per simulare il caricamento nel front end
+        #time.sleep(3)#solo per debug, per simulare il caricamento nel front end
         with open("./Config.json", 'r') as file:
             data = json.load(file)
 
@@ -165,27 +162,34 @@ def esegui_ping(host, username, password):
     finally:
         ssh.close()
 
-
-#Funzione che non ho capito come e quando viene chiamata
 @app.get("/checkDeployments")
-async def checkDeployments():
+async def check_deployments():
     try:
         with open("./Config.json", 'r') as file:
-            data = json.load(file)
+            config = json.load(file)
 
-        for el in data["RemoteDeployments"]:
-            # ssh to ip and check if analyzer is running with ping command to ip with subprocess
-            result = subprocess.run(["ping", "-c", "1", el["IP"]], stdout=subprocess.PIPE)
+        status_list = []
+        for deploy in config["RemoteDeployments"]:
+            ip = deploy["IP"]
+            name = deploy.get("name", ip)
 
-            if result.stdout != b"active\n":
-                data["RemoteDeployments"].remove(el)
-        
-        with open("./Config.json", 'w') as file:
-            json.dump(data, file, indent=2)
-        
-        return data
+            # Esegui un ping
+            result = subprocess.run(
+                ["ping", "-c", "1", "-W", "1", ip],  # -W 1 = timeout 1 secondo
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL
+            )
+
+            status_list.append({
+                "name": name,
+                "ip": ip,
+                "online": result.returncode == 0
+            })
+
+        return {"deployments": status_list}
+
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error processing file: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
 
 @app.get("/rebootAnalyzer/{ip}")
 async def rebootAnalyzer(ip: str):

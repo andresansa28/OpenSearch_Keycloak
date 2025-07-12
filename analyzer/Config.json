@@ -7,15 +7,19 @@
   "greynoise_api_key": "5ae9wOgoA9SWXnrY7u1S09drGy509e4MOYnLP39YZ5Pqi3oADIiQMIiBtjfdTW88",
   "RemoteDeployments": [
     {
-      "name": "andre28",
-      "IP": "192.168.161.57",
+      "name": "prova",
+      "IP": "192.168.1.123",
       "user": "andre28",
       "passw": "1234",
       "active": true,
       "Containers": [
         {
-          "IP": "192.168.161.176",
-          "name": "PLC1"
+          "IP": "1234",
+          "name": "plc1"
+        },
+        {
+          "IP": "2345",
+          "name": "plc2"
         }
       ]
     }

@@ -33,6 +33,6 @@ export class AnalyzerService {
   }
 
   getIsRunning() {
-    return this.http.get<{ running: boolean }>('/status');
+    return this.http.get<{ running: boolean }>(`${this.url}/status`);
   }
 }

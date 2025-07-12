@@ -4,6 +4,8 @@ import sched
 import subprocess
 import threading
 import time
+from starlette.middleware.base import BaseHTTPMiddleware
+from fastapi import Request
 
 import logging
 logging.basicConfig(
@@ -13,6 +15,13 @@ logging.basicConfig(
 
 # Disabilita i log di paramiko e delle sue sottolibrerie
 logging.getLogger("paramiko").setLevel(logging.WARNING)
+class IgnoreStatusRoute(logging.Filter):
+    def filter(self, record):
+        return 'GET /status' not in record.getMessage()
+
+
+#disabilita i log di getStatus()
+logging.getLogger("uvicorn.access").addFilter(IgnoreStatusRoute())
 
 import numpy as np
 import pandas as pd
@@ -35,6 +44,11 @@ import interaction_calc
 auth = ('admin', 'admin')  # For testing only. Don't store credentials in code.
 
 
+
+
+
+
+
 with open("../Config.json", "r") as jsonfile:
     data = json.load(jsonfile)
 pcapPath = data["pcapFolder"]
@@ -50,6 +64,18 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+class FilterStatusLogsMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request: Request, call_next):
+        response = await call_next(request)
+        # Disattiva log uvicorn access solo per GET /status
+        if request.url.path == "/status":
+            response.headers["x-no-log"] = "true"
+        return response
+
+app.add_middleware(FilterStatusLogsMiddleware) #la classe sopra serve sempre per disabilitare i log di getStatus()
+
 
 my_scheduler = sched.scheduler(time.time, time.sleep)
 event = None
@@ -212,7 +238,6 @@ def bulk_load(vm_name, plc_name, path_log):
 
 def run_zeek(standard=True):
     logging.info("Inizio metodo run_zeek")
-    
     for dirs in os.listdir(pcapPath):
         for pcap in os.listdir(pcapPath + dirs):
             if os.path.exists(pcapPath + dirs + "/LOGS/"):
@@ -256,26 +281,71 @@ def create_sh(container_list):
 
 
 
+def test_host_connectivity(vm):
+    """
+    Testa la raggiungibilità di una VM remota tramite connessione TCP.
+    
+    Args:
+        vm: Dizionario contenente le informazioni della VM (IP, user, passw)
+    
+    Returns:
+        bool: True se l'host è raggiungibile, False altrimenti
+    """
+    import socket
+    
+    try:
+        logging.info(f"Test connettività TCP verso {vm['IP']}...")
+        
+        # Testa la connessione sulla porta SSH (22) con timeout di 3 secondi
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        sock.settimeout(3)
+        
+        result = sock.connect_ex((vm['IP'], 22))
+        sock.close()
+        
+        if result == 0:
+            logging.info(f"Host {vm['IP']} raggiungibile (porta SSH accessibile)")
+            return True
+        else:
+            logging.error(f"Host {vm['IP']} non raggiungibile (porta SSH non accessibile)")
+            return False
+            
+    except socket.timeout:
+        logging.error(f"Timeout durante il test di connettività verso {vm['IP']}")
+        return False
+    except Exception as e:
+        logging.error(f"Errore durante il test di connettività verso {vm['IP']}: {e}")
+        return False
+
+
 #Metodo eseguito dallo scheduler ogni delay secondi
 def get_pcap(scheduler):
     global running
-    
     if not running:
         logging.info("Scheduler interrotto, uscita dal ciclo get_pcap")
         return
-
     try:
-        
-        logging.info("Avvio get_pcap prova prova...")
+        deployments = get_remote_deployments()
+        if len(deployments) == 0:
+            logging.info("Non ci sono deploy nella lista")
+            running = False
+            return
         # Avvia la logica principale
         for vm in get_remote_deployments():
+            # Test della connessione TCP prima di procedere
+            if not test_host_connectivity(vm):
+                logging.error(f"Host {vm['IP']} non raggiungibile, interruzione dell'operazione")
+                running = False  # Interrompe tutto
+                return
+            
             remote_host = ssh_management.Host(
                 host_ip=vm["IP"],
                 username=vm["user"],
                 password=vm["passw"]
             )
+            
             result = remote_host.run_command("ls").stdout.split()
-
+            logging.info("Avvio get_pcap prova prova...")
             if "capture.sh" not in result:
                 create_sh(vm["Containers"])
                 remote_host.put_script("capture.sh", "capture.sh")
@@ -292,7 +362,7 @@ def get_pcap(scheduler):
                     remote_host.run_command("sudo rm captures/" + pcap)
                     print(str(pcap)+" eliminato",True)
                 remote_host.run_command("sudo ./capture.sh")
-                print("Metodo per la cattura dei pacchetti sulla vm remota avviato",True)
+                logging.info("Metodo per la cattura dei pacchetti sulla vm remota avviato")
             else:
                 os.makedirs(pcapPath + vm["name"])
 
@@ -322,13 +392,12 @@ def start_service():
 def stop_service():
     global running, event
     running = False
-    logging.info("Analyzer stoppato, non verrà più riprogrammato")
     if event in my_scheduler.queue:
         try:
             my_scheduler.cancel(event)
-            logging.info("Analyzer stoppato correttamente")
-        except Exception:
-            pass
+            print("Evento cancellato con successo.")
+        except ValueError:
+            print("Evento non trovato: nessuna cancellazione effettuata.")
     return "Service stopped"
 
 

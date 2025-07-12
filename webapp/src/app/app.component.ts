@@ -1,5 +1,4 @@
 import {Component, OnInit} from '@angular/core';
-import {PrimeNGConfig} from "primeng/api";
 
 @Component({
   selector: 'app-root',
@@ -7,11 +6,12 @@ import {PrimeNGConfig} from "primeng/api";
   styleUrls: ['./app.component.scss']
 })
 export class AppComponent implements OnInit{
-  title: any;
-  constructor(private primengConfig: PrimeNGConfig) { }
+  title: string = 'OpenSearch Keycloak WebApp';
+  
+  constructor() { }
 
   ngOnInit() {
-    this.primengConfig.ripple = true;
+    // Angular Material non richiede configurazione globale come PrimeNG
   }
-
 }
+

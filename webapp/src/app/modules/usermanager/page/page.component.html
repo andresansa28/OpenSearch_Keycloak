@@ -1,75 +1,195 @@
-<p-card>
-  <p-messages></p-messages>
-  <div class="card">
-    <p-table [value]="users">
-      <ng-template pTemplate="header">
-        <tr>
-          <th>Username</th>
-          <th>Name</th>
-          <th>Surname</th>
-          <th>Role Management</th>
-        </tr>
-      </ng-template>
-      <ng-template pTemplate="body" let-user>
-        <tr>
-          <td>{{user.username}}</td>
-          <td>{{user.firstName}}</td>
-          <td>{{user.lastName}}</td>
-          <td>
-            <button pButton pRipple icon="pi pi-pencil" class="p-button-rounded p-button-success mr-2" (click)="editUser(user.id)"></button>
-          </td>
-          <td>
-            <button pButton (click)="deleteUser(user.id)" pRipple icon="pi pi-trash" class="p-button-rounded p-button-warning"></button>
-          </td>
+<!-- User Management Component -->
+<div class="container">
+  <!-- Header Section -->
+  <header class="page-header">
+    <h1 class="page-title">Gestione Utenti</h1>
+    <p class="page-subtitle">Amministra gli utenti del sistema</p>
+  </header>
 
-        </tr>
-      </ng-template>
-    </p-table>
+  <!-- Users Table Section -->
+  <section class="users-section">
+    <div class="section-header">
+      <h2>Lista Utenti</h2>
+    </div>
+
+    <div class="table-container">
+      <table mat-table [dataSource]="filteredUsers" class="modern-table" matSort>
+        <!-- Avatar Column -->
+        <ng-container matColumnDef="avatar">
+          <th mat-header-cell *matHeaderCellDef></th>
+          <td mat-cell *matCellDef="let user">
+            <div class="user-avatar">
+              <mat-icon>account_circle</mat-icon>
+            </div>
+          </td>
+        </ng-container>
+
+        <!-- Username Column -->
+        <ng-container matColumnDef="username">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header>Username</th>
+          <td mat-cell *matCellDef="let user">
+            <div class="user-info">
+              <span class="username">{{user.username}}</span>
+              <span class="email">{{user.email}}</span>
+            </div>
+          </td>
+        </ng-container>
+
+        <!-- Full Name Column -->
+        <ng-container matColumnDef="fullName">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header>Nome Completo</th>
+          <td mat-cell *matCellDef="let user">
+            <span class="full-name">{{user.firstName}} {{user.lastName}}</span>
+          </td>
+        </ng-container>
+
+        <!-- Status Column -->
+        <ng-container matColumnDef="status">
+          <th mat-header-cell *matHeaderCellDef>Status</th>
+          <td mat-cell *matCellDef="let user">
+            <span class="status-badge" [class.active]="user.isActive" [class.inactive]="!user.isActive">
+              {{user.isActive ? 'Attivo' : 'Inattivo'}}
+            </span>
+          </td>
+        </ng-container>
+
+        <!-- Actions Column -->
+        <ng-container matColumnDef="actions">
+          <th mat-header-cell *matHeaderCellDef>Azioni</th>
+          <td mat-cell *matCellDef="let user">
+            <div class="action-buttons">
+              <button mat-icon-button class="action-btn edit-btn" (click)="editUser(user.id)" matTooltip="Modifica utente">
+                <mat-icon>edit</mat-icon>
+              </button>
+              <button mat-icon-button class="action-btn group-btn" (click)="manageGroups(user.id)" matTooltip="Gestisci gruppi">
+                <mat-icon>group</mat-icon>
+              </button>
+              <button mat-icon-button class="action-btn delete-btn" (click)="deleteUser(user.id)" matTooltip="Elimina utente">
+                <mat-icon>delete</mat-icon>
+              </button>
+            </div>
+          </td>
+        </ng-container>
+
+        <tr mat-header-row *matHeaderRowDef="displayedColumns; sticky: true"></tr>
+        <tr mat-row *matRowDef="let row; columns: displayedColumns;" class="table-row"></tr>
+      </table>
+
+      <!-- Empty State -->
+    </div>
+  </section>
+
+  <!-- User Form Section -->
+  <section class="form-section">
+    <div class="form-card">
+      <div class="form-header">
+        <h3>{{isEditMode ? 'Modifica Utente' : 'Crea Nuovo Utente'}}</h3>
+        <button mat-icon-button (click)="resetForm()" *ngIf="isEditMode">
+          <mat-icon>close</mat-icon>
+        </button>
+      </div>
+
+      <form class="user-form" [formGroup]="userForm" (ngSubmit)="onSubmit()">
+        <div class="form-grid">
+          <mat-form-field appearance="outline">
+            <mat-label>Username</mat-label>
+            <input matInput formControlName="username" placeholder="Inserisci username">
+            <mat-error *ngIf="userForm.get('username')?.hasError('required')">
+              Username è obbligatorio
+            </mat-error>
+            <mat-error *ngIf="userForm.get('username')?.hasError('minlength')">
+              Username deve essere almeno 3 caratteri
+            </mat-error>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Email</mat-label>
+            <input matInput type="email" formControlName="email" placeholder="Inserisci email">
+            <mat-error *ngIf="userForm.get('email')?.hasError('required')">
+              Email è obbligatoria
+            </mat-error>
+            <mat-error *ngIf="userForm.get('email')?.hasError('email')">
+              Inserisci un'email valida
+            </mat-error>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Nome</mat-label>
+            <input matInput formControlName="firstName" placeholder="Inserisci nome">
+            <mat-error *ngIf="userForm.get('firstName')?.hasError('required')">
+              Nome è obbligatorio
+            </mat-error>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Cognome</mat-label>
+            <input matInput formControlName="lastName" placeholder="Inserisci cognome">
+            <mat-error *ngIf="userForm.get('lastName')?.hasError('required')">
+              Cognome è obbligatorio
+            </mat-error>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" *ngIf="!isEditMode">
+            <mat-label>Password</mat-label>
+            <input matInput [type]="hidePassword ? 'password' : 'text'" formControlName="password" placeholder="Inserisci password">
+            <button mat-icon-button matSuffix (click)="hidePassword = !hidePassword" type="button">
+              <mat-icon>{{hidePassword ? 'visibility_off' : 'visibility'}}</mat-icon>
+            </button>
+            <mat-error *ngIf="userForm.get('password')?.hasError('required')">
+              Password è obbligatoria
+            </mat-error>
+            <mat-error *ngIf="userForm.get('password')?.hasError('minlength')">
+              Password deve essere almeno 8 caratteri
+            </mat-error>
+          </mat-form-field>
+
+          <mat-slide-toggle formControlName="isActive" class="status-toggle">
+            Utente attivo
+          </mat-slide-toggle>
+        </div>
+
+        <div class="form-actions">
+          <button mat-button type="button" (click)="resetForm()" class="cancel-btn">
+            Annulla
+          </button>
+          <button mat-raised-button color="primary" type="submit" [disabled]="userForm.invalid" class="submit-btn">
+            <mat-icon>{{isEditMode ? 'save' : 'person_add'}}</mat-icon>
+            {{isEditMode ? 'Salva Modifiche' : 'Crea Utente'}}
+          </button>
+        </div>
+      </form>
+    </div>
+  </section>
+</div>
+
+<!-- Group Management Dialog -->
+<ng-template #groupDialog>
+  <div class="dialog-header">
+    <h2 mat-dialog-title>Gestione Gruppi</h2>
+    <button mat-icon-button mat-dialog-close>
+      <mat-icon>close</mat-icon>
+    </button>
   </div>
 
-  <p-card>
-    <h5>Create new user</h5>
-    <div class="field">
-      <label for="username" class="block">Username</label>
-      <input id="username" type="username" aria-describedby="username1-help" pInputText [(ngModel)]="username" />
+  <mat-dialog-content class="dialog-content">
+    <div class="group-selection">
+      <h4>Seleziona gruppo per l'utente</h4>
+      <mat-radio-group [(ngModel)]="selectedGroup" class="group-radio-group">
+        <mat-radio-button *ngFor="let group of groups" [value]="group.id" class="group-option">
+          <div class="group-info">
+            <span class="group-name">{{group.name}}</span>
+            <span class="group-description">{{group.description}}</span>
+          </div>
+        </mat-radio-button>
+      </mat-radio-group>
     </div>
-    <div class="field">
-      <label for="firstname" class="block">First Name</label>
-      <input id="firstname" type="username" aria-describedby="username1-help" pInputText [(ngModel)]="firstname" />
-    </div>
-    <div class="field">
-      <label for="lastname" class="block">Last Name</label>
-      <input id="lastname" type="username" aria-describedby="username1-help" pInputText [(ngModel)]="lastname" />
-    </div>
-    <div class="field">
-      <label for="email" class="block">Email</label>
-      <input id="email" type="email" aria-describedby="username1-help" pInputText [(ngModel)]="email" />
-    </div>
-    <div class="field">
-      <label for="password" class="block">Password</label>
-      <input id="password" type="password" aria-describedby="username1-help" pInputText [(ngModel)]="password" />
-    </div>
-    <p-button (onClick)="createUser()" type="button" icon="pi pi-check" label="Create" styleClass="p-button-confirm">
-    </p-button>
-  </p-card>
+  </mat-dialog-content>
 
-  <p-dialog [(visible)]="productDialog" [style]="{width: '450px'}" header="Groups Management" [modal]="true" styleClass="p-fluid">
-    <p-table [value]="groups">
-      <ng-template pTemplate="header">
-        <tr>
-          <th>Role</th>
-        </tr>
-      </ng-template>
-      <ng-template pTemplate="body" let-group>
-        <tr>
-          <td>{{group.name}}</td>
-          <td>
-            <p-radioButton [inputId]="group.name" name="category" [value]="group.name" [(ngModel)]="selectedValue" ></p-radioButton>
-          </td>
-        </tr>
-      </ng-template>
-    </p-table>
-    <p-button (onClick)="changeValue()" type="button" icon="pi pi-check" label="Set Group" styleClass="p-button-confirm">
-    </p-button>
-  </p-dialog>
-</p-card>
+  <mat-dialog-actions class="dialog-actions">
+    <button mat-button mat-dialog-close>Annulla</button>
+    <button mat-raised-button color="primary" (click)="assignGroup()" [disabled]="!selectedGroup">
+      <mat-icon>group_add</mat-icon>
+      Assegna Gruppo
+    </button>
+  </mat-dialog-actions>
+</ng-template>

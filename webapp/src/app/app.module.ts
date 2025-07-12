@@ -7,6 +7,7 @@ import {KeycloakAngularModule, KeycloakService} from "keycloak-angular";
 import {AuthService} from "./shared/services/authService";
 import { NgxPermissionsModule } from 'ngx-permissions';
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
+import { MaterialModule } from './shared/material-module';
 
 function initializeKeycloak(keycloak: KeycloakService) {
   return () =>
@@ -35,6 +36,7 @@ function initializeKeycloak(keycloak: KeycloakService) {
     KeycloakAngularModule,
     AppLayoutModule,
     AppRoutingModule,
+    MaterialModule,
     NgxPermissionsModule.forRoot(),
     BrowserAnimationsModule
   ],

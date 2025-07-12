@@ -14,9 +14,14 @@ export class ConfigService {
     return this.http.get(this.url + '/getConfig');
   }
 
-  checkDeployments(deployments: any) : Observable<any> {
-    return this.http.post(this.url + '/checkDeployments', deployments);
+  checkDeployments(): Observable<any> {
+    return this.http.get(this.url + '/checkDeployments');
   }
+
+  checkSingleDeployment(ip: string): Observable<any> {
+    return this.http.get(this.url + '/checkSingleDeployment/' + ip);
+  }
+
 
   setDelayConfig(delay: number) : Observable<any> {
     return this.http.get(this.url + '/change_delay/' + delay);

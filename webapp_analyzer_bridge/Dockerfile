@@ -1,5 +1,8 @@
 FROM python:3.10
 
+# Installa ping (iputils-ping) e altri strumenti base
+RUN apt-get update && apt-get install -y iputils-ping && rm -rf /var/lib/apt/lists/*
+
 WORKDIR /webapp_analyzer_bridge
 
 COPY ./requirements.txt /webapp_analyzer_bridge/requirements.txt

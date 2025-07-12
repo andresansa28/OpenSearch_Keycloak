@@ -1,14 +1,16 @@
-import { HttpClient, HttpResponse } from '@angular/common/http';
-import { Component, OnInit, OnDestroy } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
+import { Component, OnDestroy, OnInit, ViewChild } from '@angular/core';
 import { MatSnackBar } from '@angular/material/snack-bar';
+import { MatStepper } from '@angular/material/stepper';
+import { Subscription } from 'rxjs';
+import { AnalyzerStatusService } from 'src/app/services/analyzer-status.service';
 import { AnalyzerService } from 'src/app/services/analyzer.service';
 import { ConfigService } from 'src/app/services/config.service';
 import {
   Container,
-  DeployModel,
   DeploymentsModel,
+  DeployModel,
 } from 'src/app/shared/deploymentModels/deploymentsModel';
-import { interval, Subscription } from 'rxjs';
 
 @Component({
   selector: 'app-deployment',
@@ -28,10 +30,10 @@ export class DeploymentComponent implements OnInit, OnDestroy {
   geoDbKey: string = '';
 
   //add deploy variables
-  name_input: string = 'Deploy_test';
-  IP_input: string = '192.168.1.10';
-  user_input: string = 'admin';
-  passw_input: string = 'admin';
+  name_input: string = '';
+  IP_input: string = '';
+  user_input: string = '';
+  passw_input: string = '';
   add_container_ip_input: string = '';
   add_container_name_input: string = '';
   Containers_input: Container[] = [];
@@ -41,53 +43,98 @@ export class DeploymentComponent implements OnInit, OnDestroy {
   isLoadingStart: boolean = false;
   analyzerRunning: boolean = false;
 
+  // Mappa per memorizzare lo stato online dei deployment
+  deploymentStatus: Map<string, boolean> = new Map();
+
+  // Set per tracciare i deployment in fase di controllo
+  checkingDeployments: Set<string> = new Set();
+
+  // Variabili per la modalità di modifica
+  isEditMode: boolean = false;
+  deploymentBeingEdited: DeployModel | null = null;
+  originalDeploymentIP: string = '';
+
+  @ViewChild('stepper') stepper!: MatStepper;
+
   private statusSubscription: Subscription | null = null;
 
   constructor(
     private http: HttpClient,
     private configS: ConfigService,
     private _snackBar: MatSnackBar,
-    private analyzerS: AnalyzerService
-  ) {}
+    private analyzerS: AnalyzerService,
+    private analyzerStatusService: AnalyzerStatusService
+  ) { }
+
+  // Aggiungi questi nel tuo DeploymentComponent
+
+  selectedDeployment: any = null;
+
+  removePlcIp(index: number) {
+    // implementa logica per rimuovere un PLC dalla lista
+    this.Containers_input.splice(index, 1);
+  }
+
+
+
+  isFormValid(): boolean {
+    // implementa logica di validazione form
+    return !!(this.name_input && this.IP_input && this.user_input && this.passw_input);
+  }
+
+
+  getStatusColor(status?: string): string {
+    // colori a seconda dello stato del deployment
+    switch (status?.toLowerCase()) {
+      case 'online':
+        return '#4caf50';
+      case 'offline':
+        return '#f44336';
+      default:
+        return '#9e9e9e';
+    }
+  }
+
+
 
   ngOnInit(): void {
-    // this.http.get('http://localhost:8080/ips').subscribe((res: any) => {
-    //   this.ips = res;
-    // });
     this.initDeployments();
-    this.updateAnalyzerStatus();
+    this.checkDeploymentsStatus();
 
-    // Controlla lo stato dell'analyzer ogni 10 secondi
-    // effettua le chiamate solo se la pagina è visibile
-    this.statusSubscription = interval(10000).subscribe(() => {
-      if (document.visibilityState === 'visible') {
-        this.analyzerS.getIsRunning().subscribe({
-          next: (res) => {
-            this.analyzerRunning = !!res.running;
-          },
-          error: () => {
-            this.analyzerRunning = false;
-          }
-        });
+    // Avvia il polling ogni 5 secondi per controllare lo stato dei deployment
+    // Commentato per evitare polling automatico - ora si usa il controllo manuale
+    /*
+    setInterval(() => {
+      this.checkDeploymentsStatus();
+    }, 5000);
+    */
+
+    // Inizia il monitoraggio dello stato dell'analyzer
+    this.analyzerStatusService.startMonitoring();
+
+    // Sottoscrivi agli aggiornamenti dello stato
+    this.statusSubscription = this.analyzerStatusService.isRunning$.subscribe(
+      (isRunning: boolean) => {
+        this.analyzerRunning = isRunning;
       }
-    });
-    
+    );
   }
 
   ngOnDestroy(): void {
+    // Ferma il monitoraggio
+    this.analyzerStatusService.stopMonitoring();
+
+    // Pulisci la subscription
     if (this.statusSubscription) {
       this.statusSubscription.unsubscribe();
     }
   }
 
-  // async function to active div
-  toggleDiv() {
-    (this.isDivActive = !this.isDivActive), 2000;
-  }
+
 
   initDeployments(): void {
-    this.configS.getDeployments().subscribe(
-      (res: any) => {
+    this.configS.getDeployments().subscribe({
+      next: (res: any) => {
         var remote: DeployModel[] = [];
         for (var i = 0; i < res.RemoteDeployments.length; i++) {
           var deploy: DeployModel = {
@@ -107,57 +154,69 @@ export class DeploymentComponent implements OnInit, OnDestroy {
         };
         this.delayValue = this.deployments.delay;
       },
-      (error: any) => {
+      error: (error: any) => {
         this._snackBar.open('Errore nel caricamento dei dati!', 'Chiudi', {
           duration: 2000, // Durata in millisecondi
         });
       }
-    );
+    });
   }
 
-  checkDeploymentsStatus(): void {
-    this.configS.checkDeployments(this.deployments).subscribe(
-      (res: any) => {
-        // restituisce il deployModel degli ip che sono attivi
-        console.log(res);
-      },
-      (error: any) => {
-        this._snackBar.open('Errore nel caricamento dei dati!', 'Chiudi', {
-          duration: 2000, // Durata in millisecondi
-        });
-      }
-    );
-  }
+
 
   setDelayConfig() {
-    this.configS.setDelayConfig(this.delayValue).subscribe(
-      (res: any) => {
+    this.configS.setDelayConfig(this.delayValue).subscribe({
+      next: (res: any) => {
         if (res['message'] == 'Delay changed successfully') {
+          this._snackBar.open('Delay aggiornato con successo!', 'Chiudi', {
+            duration: 3000
+          });
           this.initDeployments();
+        } else {
+          this._snackBar.open('Errore nell\'aggiornamento del delay!', 'Chiudi', {
+            duration: 5000
+          });
         }
       },
-      (error: any) => {
-        this._snackBar.open('Errore nel caricamento dei dati!', 'Chiudi', {
-          duration: 2000, // Durata in millisecondi
+      error: (error: any) => {
+        this._snackBar.open('Errore nell\'aggiornamento del delay!', 'Chiudi', {
+          duration: 5000
         });
       }
-    );
+    });
   }
 
   setKeyConfig() {
-    this.configS.setKeyConfig(this.geoDbKey).subscribe((res: any) => {
-      console.log(res);
-      if (res['message'] == 'MaxMind_GeoDB_Key changed successfully') {
-        this.initDeployments();
+    this.configS.setKeyConfig(this.geoDbKey).subscribe({
+      next: (res: any) => {
+        console.log(res);
+        if (res['message'] == 'MaxMind_GeoDB_Key changed successfully') {
+          this._snackBar.open('Chiave MaxMind aggiornata con successo!', 'Chiudi', {
+            duration: 3000
+          });
+          this.initDeployments();
+        } else {
+          this._snackBar.open('Errore nell\'aggiornamento della chiave MaxMind!', 'Chiudi', {
+            duration: 5000
+          });
+        }
+      },
+      error: (error: any) => {
+        this._snackBar.open('Errore nell\'aggiornamento della chiave MaxMind!', 'Chiudi', {
+          duration: 5000
+        });
       }
     });
   }
 
   addDeployment(): void {
+    if (this.isEditMode) {
+      // Se siamo in modalità modifica, usa il metodo di aggiornamento
+      this.updateDeployment();
+      return;
+    }
+
     this.isLoadingDeploy = true;
-    this._snackBar.open('Controllo connessione ssh con il deployment...', 'Chiudi', {
-          duration: undefined
-          });
     const deploy: DeployModel = {
       name: this.name_input,
       IP: this.IP_input,
@@ -169,8 +228,6 @@ export class DeploymentComponent implements OnInit, OnDestroy {
 
     this.configS.addDeployment(deploy).subscribe({
       next: (res: any) => {
-        
-
         // Ricarica la lista dei deployment
         this.initDeployments();
         this._snackBar.open('Deployment aggiunto con successo!', 'Chiudi', {
@@ -178,11 +235,13 @@ export class DeploymentComponent implements OnInit, OnDestroy {
         });
 
         // Pulisci i campi input
-        this.name_input = '';
-        this.IP_input = '';
-        this.user_input = '';
-        this.passw_input = '';
-        this.Containers_input = [];
+        this.clearForm();
+
+        // Reset del stepper
+        if (this.stepper) {
+          this.stepper.reset();
+        }
+
         this.isLoadingDeploy = false;
       },
       error: (err: any) => {
@@ -215,26 +274,6 @@ export class DeploymentComponent implements OnInit, OnDestroy {
     });
   }
 
-  onUpload(event: any): void {
-    var response: HttpResponse<any> = event.originalEvent;
-    console.log(response.body['message']);
-
-    for (const file of event.files) {
-      console.log(file);
-    }
-  }
-
-  updateAnalyzerStatus(): void {
-    this.analyzerS.getStatus().subscribe({
-      next: (res: any) => {
-        // Supponiamo che la risposta sia { running: true/false }
-        this.analyzerRunning = !!res.running;
-      },
-      error: () => {
-        this.analyzerRunning = false;
-      }
-    });
-  }
 
   startAnalyzer(): void {
     this.isLoadingStart = true;
@@ -244,14 +283,15 @@ export class DeploymentComponent implements OnInit, OnDestroy {
         this._snackBar.open('Analyzer avviato con successo!', 'Chiudi', {
           duration: 3000,
         });
-        this.updateAnalyzerStatus();
+        // Aggiorna lo stato immediatamente
+        this.analyzerStatusService.refreshStatus();
       },
       error: () => {
         this._snackBar.open("Errore nell'avvio dell'analyzer", 'Chiudi', {
           duration: 5000,
         });
         this.isLoadingStart = false;
-        this.updateAnalyzerStatus();
+        this.analyzerStatusService.refreshStatus();
       },
       complete: () => {
         this.isLoadingStart = false;
@@ -263,17 +303,17 @@ export class DeploymentComponent implements OnInit, OnDestroy {
     this.analyzerS.stop().subscribe({
       next: (res: any) => {
         console.log(res);
-        this.updateAnalyzerStatus();
+        // Aggiorna lo stato immediatamente
+        this.analyzerStatusService.refreshStatus();
       },
       error: () => {
-        this.updateAnalyzerStatus();
+        this.analyzerStatusService.refreshStatus();
       }
     });
   }
 
   forceOpenSearchSetup(): void {
     this.isLoadingSetup = true;
-
     this.analyzerS.forceOpenSearchSetup().subscribe({
       next: (res: any) => {
         console.log(res);
@@ -314,7 +354,220 @@ export class DeploymentComponent implements OnInit, OnDestroy {
     this.Containers_input.push(container);
   }
 
-  
-  
+  checkDeploymentsStatus(): void {
+    this.configS.checkDeployments().subscribe({
+      next: (res: any) => {
+        // Aggiorna la mappa con gli stati dei deployment
+        if (res.deployments) {
+          res.deployments.forEach((deployment: any) => {
+            this.deploymentStatus.set(deployment.ip, deployment.online);
+          });
+        }
+      },
+      error: (error: any) => {
+        this._snackBar.open('Errore nel controllo stato deployment!', 'Chiudi', {
+          duration: 2000,
+        });
+      }
+    });
+  }
+
+
+  getDeviceStatusColor(ip: string): string {
+    const isOnline = this.deploymentStatus.get(ip);
+    if (isOnline === true) return '#4caf50'; // Verde per online
+    if (isOnline === false) return '#f44336'; // Rosso per offline
+    return '#9e9e9e'; // Grigio per stato sconosciuto
+  }
+
+  getDeviceStatusText(ip: string): string {
+    const isOnline = this.deploymentStatus.get(ip);
+    if (isOnline === true) return 'Online';
+    if (isOnline === false) return 'Offline';
+    return 'Sconosciuto';
+  }
+
+  isDeploymentOnline(ip: string): boolean {
+    return this.deploymentStatus.get(ip) === true;
+  }
+
+  editDeployment(deploy: any): void {
+    // Attiva la modalità di modifica
+    this.isEditMode = true;
+    this.deploymentBeingEdited = { ...deploy }; // Crea una copia
+    this.originalDeploymentIP = deploy.IP;
+
+    // Popola i campi del form con i dati del deployment da modificare
+    this.name_input = deploy.name;
+    this.IP_input = deploy.IP;
+    this.user_input = deploy.user;
+    this.passw_input = deploy.passw;
+    this.Containers_input = [...deploy.Containers]; // Copia i container
+
+    // Reset del stepper al primo step
+    if (this.stepper) {
+      this.stepper.reset();
+    }
+
+    // Scorri in alto al form di aggiunta/modifica
+    this.scrollToForm();
+
+    this._snackBar.open('Modalità modifica attivata', 'Chiudi', {
+      duration: 2000
+    });
+  }
+
+  cancelEdit(): void {
+    // Disattiva la modalità di modifica e pulisce i campi
+    this.isEditMode = false;
+    this.deploymentBeingEdited = null;
+    this.originalDeploymentIP = '';
+    this.clearForm();
+
+    // Reset del stepper al primo step
+    if (this.stepper) {
+      this.stepper.reset();
+    }
+
+    this._snackBar.open('Modifica annullata', 'Chiudi', {
+      duration: 2000
+    });
+  }
+
+  updateDeployment(): void {
+    if (!this.isFormValid() || !this.deploymentBeingEdited) {
+      this._snackBar.open('Compilare tutti i campi obbligatori!', 'Chiudi', {
+        duration: 3000
+      });
+      return;
+    }
+
+    this.isLoadingDeploy = true;
+
+    // Crea l'oggetto deployment aggiornato
+    const updatedDeploy: DeployModel = {
+      name: this.name_input,
+      IP: this.IP_input,
+      user: this.user_input,
+      passw: this.passw_input,
+      active: true,
+      Containers: this.Containers_input,
+    };
+
+    // Prima rimuovi il deployment esistente, poi aggiungi quello aggiornato
+    this.configS.removeDeployment(this.originalDeploymentIP).subscribe({
+      next: (removeRes: any) => {
+        if (removeRes['message'] == 'Deployments removed successfully') {
+          // Ora aggiungi il deployment aggiornato
+          this.configS.addDeployment(updatedDeploy).subscribe({
+            next: (addRes: any) => {
+              // Ricarica la lista dei deployment
+              this.initDeployments();
+              this._snackBar.open('Deployment aggiornato con successo!', 'Chiudi', {
+                duration: 3000
+              });
+
+              // Esci dalla modalità di modifica e pulisci i campi
+              this.isEditMode = false;
+              this.deploymentBeingEdited = null;
+              this.originalDeploymentIP = '';
+              this.clearForm();
+
+              // Reset del stepper
+              if (this.stepper) {
+                this.stepper.reset();
+              }
+
+              this.isLoadingDeploy = false;
+            },
+            error: (addErr: any) => {
+              this._snackBar.open("Errore durante l'aggiornamento del deployment!", 'Chiudi', {
+                duration: 5000
+              });
+              this.isLoadingDeploy = false;
+              console.error('Errore aggiunta:', addErr);
+            }
+          });
+        } else {
+          this._snackBar.open('Errore nella rimozione del deployment originale!', 'Chiudi', {
+            duration: 5000
+          });
+          this.isLoadingDeploy = false;
+        }
+      },
+      error: (removeErr: any) => {
+        this._snackBar.open('Errore nella rimozione del deployment originale!', 'Chiudi', {
+          duration: 5000
+        });
+        this.isLoadingDeploy = false;
+        console.error('Errore rimozione:', removeErr);
+      }
+    });
+  }
+
+  private clearForm(): void {
+    this.name_input = '';
+    this.IP_input = '';
+    this.user_input = '';
+    this.passw_input = '';
+    this.Containers_input = [];
+    this.add_container_ip_input = '';
+    this.add_container_name_input = '';
+  }
+
+  private scrollToForm(): void {
+    // Scorri fino al form di aggiunta/modifica
+    setTimeout(() => {
+      const formElement = document.querySelector('.deployment-card');
+      if (formElement) {
+        formElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }, 100);
+  }
+
+
+  selectDeployment(deploy: any): void {
+    this.selectedDeployment = this.selectedDeployment === deploy ? null : deploy;
+  }
+
+  checkSingleDeploymentStatus(deploymentIP: string): void {
+    // Aggiungi IP al set di controlli in corso
+    this.checkingDeployments.add(deploymentIP);
+
+    // Per ora uso checkDeployments e filtro il risultato per il singolo IP
+    this.configS.checkDeployments().subscribe({
+      next: (res: any) => {
+        // Trova il deployment specifico nella risposta
+        if (res.deployments) {
+          const targetDeployment = res.deployments.find((dep: any) => dep.ip === deploymentIP);
+          if (targetDeployment) {
+            this.deploymentStatus.set(targetDeployment.ip, targetDeployment.online);
+
+            const statusText = targetDeployment.online ? 'online' : 'offline';
+            this._snackBar.open(`Vm del Deployment ${targetDeployment.name} è ${statusText}`, 'Chiudi', {
+              duration: 3000,
+            });
+          }
+        }
+      },
+      error: (error: any) => {
+        this._snackBar.open('Errore nel controllo stato deployment!', 'Chiudi', {
+          duration: 2000,
+        });
+      },
+      complete: () => {
+        // Rimuovi IP dal set di controlli in corso
+        this.checkingDeployments.delete(deploymentIP);
+      }
+    });
+  }
+
+  isCheckingDeployment(ip: string): boolean {
+    return this.checkingDeployments.has(ip);
+  }
+
+
+
+
 
 }

@@ -1,0 +1,70 @@
+.active-link {
+  font-weight: bold;
+  color: #fff;
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+.navbar {
+  top: 0;
+  z-index: 1000;
+  width: 100%;
+  display: flex;
+}
+
+.logo {
+  font-weight: bold;
+  font-size: 20px;
+}
+
+.spacer {
+  flex: 1 1 auto;
+}
+
+.status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 20px;
+  font-weight: 500;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  font-weight: bolder;
+  color: #e0e0ff; /* colore chiaro con una punta di violetto */
+  font-size: 14px;
+  background-color: #2e148c; /* viola scuro profondo, coerente con la navbar */
+  padding: 4px 12px;
+  border-radius: 20px;
+  box-shadow: 0 0 10px rgba(103, 58, 183, 0.3); /* viola Material trasparente */
+}
+
+/* cerchio animato */
+.status-indicator {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  animation: pulse 1.5s infinite ease-in-out;
+}
+
+.status.running .status-indicator {
+  background-color: #4caf50; /* verde */
+}
+
+.status.stopped .status-indicator {
+  background-color: #f44336; /* rosso */
+  animation: none;
+}
+
+/* effetto pulsante */
+@keyframes pulse {
+  0% { box-shadow: 0 0 0 0 rgba(76, 175, 80, 0.7); }
+  70% { box-shadow: 0 0 0 6px rgba(76, 175, 80, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(76, 175, 80, 0); }
+}
+
+
+.running {
+  color: #4caf50;
+}
+
+.stopped {
+  color: #f44336;
+}

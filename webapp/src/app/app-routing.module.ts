@@ -27,20 +27,20 @@ const routes: Routes = [
         }
 
       },
-      {
-        path: 'datamanager',
-        canActivate: [AuthGuard,NgxPermissionsGuard],
-        loadChildren: () =>
-          import(
-            './modules/datamanager/datamanager.module'
-            ).then((m) => m.DatamanagerModule),
-            data:{
-              permissions: {
-                only: "admin"
-              }
+      // {
+      //   path: 'datamanager',
+      //   canActivate: [AuthGuard,NgxPermissionsGuard],
+      //   loadChildren: () =>
+      //     import(
+      //       './modules/datamanager/datamanager.module'
+      //       ).then((m) => m.DatamanagerModule),
+      //       data:{
+      //         permissions: {
+      //           only: "admin"
+      //         }
 
-            }
-      },
+      //       }
+      // },
       {
         path: 'usermanager',
         canActivate: [AuthGuard,NgxPermissionsGuard],

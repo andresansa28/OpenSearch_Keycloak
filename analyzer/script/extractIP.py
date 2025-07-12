@@ -1,3 +1,4 @@
+from cgi import print_arguments
 import json
 # "id.orig_h": "87.120.88.59"
 def extractUniqueIP():

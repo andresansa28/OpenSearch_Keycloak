@@ -1,6 +1,7 @@
 export interface Container {
     IP: string;
     name: string;
+    status?: string;
 }
 
 export interface DeployModel {
@@ -10,6 +11,7 @@ export interface DeployModel {
     passw: string;
     active: boolean;
     Containers : Container[];
+    status?: string; // AGGIUNGI questa riga
 }
 
 export interface DeploymentsModel {

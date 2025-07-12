@@ -1,236 +1,381 @@
-<div class="config_container">
-  <p-card>
-    <h1>Configurazione a</h1>
-    <div class="conf_grid1">
-      <div>
-        <h3>Geo_DB Key</h3>
-        <div class="field">
-          <input
-            [(ngModel)]="geoDbKey"
-            id="text"
-            type="text"
-            class="ip_box"
-            aria-describedby="username1-help"
-            pInputText
-          />
-        </div>
-        <button pButton label="Set Key" (click)="setKeyConfig()"></button>
-        <br />
-        <br />
-        <h3>Delay</h3>
-        <div class="field">
-          <input
-            [(ngModel)]="delayValue"
-            id="text"
-            type="number"
-            class="ip_box"
-            aria-describedby="username1-help"
-            pInputText
-          />
-        </div>
-        <button pButton label="Set Delay" (click)="setDelayConfig()"></button>
-      </div>
+<div class="config-page">
+  <!-- Header -->
 
-      
-      <!-- right column -->
-      <div class="analyzer_button_container">
-        <div>
-          <h1>Analyzer</h1>
-          <span 
-            [ngStyle]="{
-              'font-size': '1.2rem',
-              'font-weight': 'bold',
-              'color': analyzerRunning ? 'green' : 'red'
-            }"
-          >
-            Running = {{ analyzerRunning }}
-          </span>
-        </div>
-        <button
-          pButton
-          label="Force OpenSearchSetup"
-          (click)="forceOpenSearchSetup()"
-          [loading]="isLoadingSetup"
-        ></button>
-        <div style="display: flex; gap: 1rem">
-          <button
-            pButton
-            label="Start"
-            [class]="button_green"
-            (click)="startAnalyzer()"
-            [loading]="isLoadingStart"
-          ></button>
-          <button
-            pButton
-            label="Stop"
-            [class]="button_red"
-            (click)="stopAnalyzer()"
-          ></button>
-        </div>
-      </div>
-    </div>
-  </p-card>
-</div>
+  <header class="page-header">
+    <h1 class="page-title">Configurazione Sistema</h1>
+    <p class="page-subtitle">Amministra i deployments</p>
+  </header>
 
-<div class="add_deployment_container">
-  <p-card>
-    <div class="card_container">
-      <h1>Aggiungi un nuovo deployment</h1>
-    </div>
-    <br />
-    <br />
-    <h2>Inserisci l'ip della macchina virtuale UBUNTU</h2>
-    <div class="field field_responsive">
-      <input
-        id="text"
-        type="text"
-        class="ip_box"
-        aria-describedby="username1-help"
-        pInputText
-      />
-    </div>
+  <!-- <mat-toolbar color="primary" class="page-header">
+    <mat-icon>settings</mat-icon>
+    <span>Configurazione Sistema</span>
+  </mat-toolbar> -->
 
-    <h2>Deployment Configuration</h2>
-    <div class="conf_grid">
-      <!-- Left Column -->
-      <div>
-        <div>
-          <h3>Deploy Name</h3>
-          <div class="field">
-            <input
-              [(ngModel)]="name_input"
-              id="name_input"
-              type="text"
-              class="ip_box"
-              aria-describedby="name"
-              pInputText
-            />
+  <div class="container">
+    <!-- Configuration Section -->
+    <mat-card class="config-card" appearance="outlined">
+      <mat-card-header>
+        <mat-card-title>
+          <mat-icon>tune</mat-icon>
+          Configurazione
+        </mat-card-title>
+      </mat-card-header>
+      <mat-card-content>
+        <div class="config-grid">
+          <!-- Left Column -->
+          <div class="config-column">
+            <mat-form-field appearance="outline" class="full-width">
+              <mat-label>Geo_DB Key</mat-label>
+              <input matInput [(ngModel)]="geoDbKey" placeholder="Inserisci la chiave Geo_DB">
+              <mat-icon matSuffix>vpn_key</mat-icon>
+            </mat-form-field>
+            <button mat-raised-button color="primary" (click)="setKeyConfig()" class="config-button">
+              <mat-icon>save</mat-icon>
+              Imposta Chiave
+            </button>
+
+            <mat-form-field appearance="outline" class="full-width">
+              <mat-label>Delay (ms)</mat-label>
+              <input matInput type="number" [(ngModel)]="delayValue" placeholder="Inserisci il delay">
+              <mat-icon matSuffix>timer</mat-icon>
+            </mat-form-field>
+            <button mat-raised-button color="primary" (click)="setDelayConfig()" class="config-button">
+              <mat-icon>save</mat-icon>
+              Imposta Delay
+            </button>
           </div>
 
-          <h3>IP</h3>
-          <div class="field">
-            <input
-              [(ngModel)]="IP_input"
-              id="ip_input"
-              type="text"
-              class="ip_box"
-              aria-describedby="ip"
-              pInputText
-            />
+          <!-- Right Column - Analyzer -->
+          <div class="analyzer-column">
+            <mat-card class="analyzer-card" appearance="outlined">
+              <mat-card-header>
+                <mat-card-title>
+                  <mat-icon>analytics</mat-icon>
+                  Analyzer
+                </mat-card-title>
+              </mat-card-header>
+              <mat-card-content>
+                <div class="analyzer-status">
+                  <mat-chip-set>
+                    <mat-chip [style.background-color]="analyzerRunning ? '#4caf50' : '#f44336'" 
+                              [style.color]="'white'">
+                      <mat-icon>{{analyzerRunning ? 'play_circle' : 'stop_circle'}}</mat-icon>
+                      {{analyzerRunning ? 'Running' : 'Stopped'}}
+                    </mat-chip>
+                  </mat-chip-set>
+                </div>
+
+                <button mat-stroked-button color="accent" (click)="forceOpenSearchSetup()" 
+                        class="full-width analyzer-button" [disabled]="isLoadingSetup">
+                  <mat-icon>refresh</mat-icon>
+                  Force OpenSearch Setup
+                  <mat-spinner diameter="20" *ngIf="isLoadingSetup" style="margin-left: 10px;"></mat-spinner>
+                </button>
+
+                <div class="analyzer-controls">
+                  <button mat-raised-button color="primary" (click)="startAnalyzer()" 
+                          [disabled]="isLoadingStart" class="control-button">
+                    <mat-icon>play_arrow</mat-icon>
+                    Start
+                    <mat-spinner diameter="20" *ngIf="isLoadingStart" style="margin-left: 10px;"></mat-spinner>
+                  </button>
+                  <button mat-raised-button color="warn" (click)="stopAnalyzer()" class="control-button">
+                    <mat-icon>stop</mat-icon>
+                    Stop
+                  </button>
+                </div>
+              </mat-card-content>
+            </mat-card>
           </div>
         </div>
-      </div>
+      </mat-card-content>
+    </mat-card>
 
-      <!-- Right Column (Empty for now) -->
-      <div>
-        <h3>Username</h3>
-        <div class="field">
-          <input
-            [(ngModel)]="user_input"
-            id="user_input"
-            type="text"
-            class="ip_box"
-            aria-describedby="user"
-            pInputText
-          />
+    <!-- Add/Edit Deployment Section -->
+    <mat-card class="deployment-card" appearance="outlined">
+      <mat-card-header>
+        <mat-card-title>
+          <mat-icon>{{isEditMode ? 'edit' : 'add_circle'}}</mat-icon>
+          {{isEditMode ? 'Modifica Deployment' : 'Aggiungi Nuovo Deployment'}}
+        </mat-card-title>
+        <mat-card-subtitle *ngIf="isEditMode">
+          Stai modificando: {{deploymentBeingEdited?.name}}
+        </mat-card-subtitle>
+      </mat-card-header>
+      <mat-card-content>
+        <mat-stepper #stepper linear>
+          <!-- Step 1: Basic Info -->
+          <mat-step label="Informazioni Base">
+            <div class="step-content">
+              <div class="form-grid">
+                <mat-form-field appearance="outline">
+                  <mat-label>Nome Deployment</mat-label>
+                  <input matInput [(ngModel)]="name_input" placeholder="Inserisci nome">
+                  <mat-icon matSuffix>label</mat-icon>
+                </mat-form-field>
+                
+                <mat-form-field appearance="outline">
+                  <mat-label>IP Macchina Virtuale</mat-label>
+                  <input matInput [(ngModel)]="IP_input" placeholder="192.168.1.100">
+                  <mat-icon matSuffix>computer</mat-icon>
+                </mat-form-field>
+                
+                <mat-form-field appearance="outline">
+                  <mat-label>Username</mat-label>
+                  <input matInput [(ngModel)]="user_input" placeholder="ubuntu">
+                  <mat-icon matSuffix>person</mat-icon>
+                </mat-form-field>
+                
+                <mat-form-field appearance="outline">
+                  <mat-label>Password</mat-label>
+                  <input matInput type="password" [(ngModel)]="passw_input" placeholder="Password">
+                  <mat-icon matSuffix>lock</mat-icon>
+                </mat-form-field>
+              </div>
+              <div class="step-actions">
+                <button mat-raised-button color="primary" matStepperNext>
+                  Avanti
+                  <mat-icon>arrow_forward</mat-icon>
+                </button>
+              </div>
+            </div>
+          </mat-step>
+
+          <!-- Step 2: PLC Configuration -->
+          <mat-step label="Configurazione PLC">
+            <div class="step-content">
+              <div class="plc-section">
+                <h3>Dispositivi PLC</h3>
+                
+                <!-- PLC List -->
+                <div class="plc-list" *ngIf="Containers_input.length > 0">
+                  <mat-list>
+                    <mat-list-item *ngFor="let container of Containers_input; let i = index">
+                      <mat-icon matListItemIcon>developer_board</mat-icon>
+                      <div matListItemTitle>{{container.name}}</div>
+                      <div matListItemLine>{{container.IP}}</div>
+                      <button mat-icon-button color="warn" (click)="removePlcIp(i)">
+                        <mat-icon>delete</mat-icon>
+                      </button>
+                    </mat-list-item>
+                  </mat-list>
+                </div>
+
+                <!-- Add PLC Form -->
+                <div class="add-plc-form">
+                  <mat-form-field appearance="outline">
+                    <mat-label>Nome PLC</mat-label>
+                    <input matInput [(ngModel)]="add_container_name_input" placeholder="PLC-001">
+                    <mat-icon matSuffix>label</mat-icon>
+                  </mat-form-field>
+                  
+                  <mat-form-field appearance="outline">
+                    <mat-label>IP PLC</mat-label>
+                    <input matInput [(ngModel)]="add_container_ip_input" placeholder="192.168.1.10">
+                    <mat-icon matSuffix>router</mat-icon>
+                  </mat-form-field>
+                  
+                  <button mat-raised-button color="accent" (click)="addPlcIp()">
+                    <mat-icon>add</mat-icon>
+                    Aggiungi PLC
+                  </button>
+                </div>
+              </div>
+              
+              <div class="step-actions">
+                <button mat-button matStepperPrevious>
+                  <mat-icon>arrow_back</mat-icon>
+                  Indietro
+                </button>
+                <button mat-raised-button color="primary" matStepperNext>
+                  Avanti
+                  <mat-icon>arrow_forward</mat-icon>
+                </button>
+              </div>
+            </div>
+          </mat-step>
+
+          <!-- Step 3: Review and Create/Update -->
+          <mat-step [label]="isEditMode ? 'Conferma Modifica' : 'Conferma e Crea'">
+            <div class="step-content">
+              <div class="review-section">
+                <h3>{{isEditMode ? 'Riepilogo Modifiche Deployment' : 'Riepilogo Deployment'}}</h3>
+                
+                <!-- Alert per modalità modifica -->
+                <mat-card *ngIf="isEditMode" appearance="outlined" 
+                          style="background-color: #fff3cd; border-color: #ffeaa7; margin-bottom: 16px;">
+                  <mat-card-content>
+                    <div style="display: flex; align-items: center;">
+                      <mat-icon style="color: #856404; margin-right: 8px;">edit</mat-icon>
+                      <span style="color: #856404;">
+                        <strong>Modalità Modifica:</strong> Stai modificando il deployment "{{deploymentBeingEdited?.name}}"
+                      </span>
+                    </div>
+                  </mat-card-content>
+                </mat-card>
+                
+                <mat-card class="review-card" appearance="outlined">
+                  <mat-card-content>
+                    <div class="review-grid">
+                      <div class="review-item">
+                        <mat-icon>label</mat-icon>
+                        <div>
+                          <strong>Nome:</strong> {{name_input || 'Non specificato'}}
+                        </div>
+                      </div>
+                      <div class="review-item">
+                        <mat-icon>computer</mat-icon>
+                        <div>
+                          <strong>IP:</strong> {{IP_input || 'Non specificato'}}
+                        </div>
+                      </div>
+                      <div class="review-item">
+                        <mat-icon>person</mat-icon>
+                        <div>
+                          <strong>Username:</strong> {{user_input || 'Non specificato'}}
+                        </div>
+                      </div>
+                      <div class="review-item">
+                        <mat-icon>developer_board</mat-icon>
+                        <div>
+                          <strong>PLC Configurati:</strong> {{Containers_input.length}}
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div class="plc-preview" *ngIf="Containers_input.length > 0">
+                      <h4>Lista PLC:</h4>
+                      <mat-chip-set>
+                        <mat-chip *ngFor="let container of Containers_input">
+                          {{container.name}} ({{container.IP}})
+                        </mat-chip>
+                      </mat-chip-set>
+                    </div>
+                  </mat-card-content>
+                </mat-card>
+              </div>
+              
+              <div class="step-actions">
+                <button mat-button matStepperPrevious>
+                  <mat-icon>arrow_back</mat-icon>
+                  Indietro
+                </button>
+                
+                <!-- Bottone per annullare modifica (solo in modalità edit) -->
+                <button mat-button color="warn" (click)="cancelEdit()" *ngIf="isEditMode"
+                        style="margin-right: 10px;">
+                  <mat-icon>cancel</mat-icon>
+                  Annulla Modifica
+                </button>
+                
+                <!-- Bottone principale (Crea o Aggiorna) -->
+                <button mat-raised-button color="primary" (click)="addDeployment()" 
+                        [disabled]="isLoadingDeploy || !isFormValid()">
+                  <mat-icon>{{isEditMode ? 'update' : 'save'}}</mat-icon>
+                  {{isEditMode ? 'Aggiorna Deployment' : 'Crea Deployment'}}
+                  <mat-spinner diameter="20" *ngIf="isLoadingDeploy" style="margin-left: 10px;"></mat-spinner>
+                </button>
+              </div>
+            </div>
+          </mat-step>
+        </mat-stepper>
+      </mat-card-content>
+    </mat-card>
+
+    <!-- Deployments List -->
+    <mat-card class="deployments-list-card" appearance="outlined">
+      <mat-card-header>
+        <mat-card-title>
+          <mat-icon>cloud</mat-icon>
+          Deployments Aggiunti
+        </mat-card-title>
+      </mat-card-header>
+      <mat-card-content>
+        <div class="deployments-grid">
+          <mat-card *ngFor="let deploy of deployments.RemoteDeployments; let i = index" 
+                    class="deployment-item" 
+                    appearance="outlined"
+                    [class.selected]="selectedDeployment === deploy"
+                    (click)="selectDeployment(deploy)">
+            <mat-card-header>
+              <mat-card-title>
+                <div class="deployment-title">
+                  <mat-icon>cloud_queue</mat-icon>
+                  {{deploy.name}}
+                </div>
+              </mat-card-title>
+              <mat-card-subtitle>{{deploy.IP}}</mat-card-subtitle>
+            </mat-card-header>
+            
+            <mat-card-content>
+              <div class="deployment-info">
+                <mat-chip-set>
+                  <mat-chip>
+                    <mat-icon>developer_board</mat-icon>
+                    {{deploy.Containers.length}} PLC
+                  </mat-chip>
+                  <mat-chip [style.background-color]="getDeviceStatusColor(deploy.IP)" 
+                           [style.color]="'white'">
+                    <mat-icon>{{isDeploymentOnline(deploy.IP) ? 'wifi' : 'wifi_off'}}</mat-icon>
+                    {{getDeviceStatusText(deploy.IP)}}
+                  </mat-chip>
+                </mat-chip-set>
+              </div>
+              
+              <!-- Expanded view -->
+              <div class="deployment-details" *ngIf="selectedDeployment === deploy">
+                <mat-divider style="margin: 16px 0;"></mat-divider>
+                
+                <!-- Controllo stato deployment -->
+                <div class="deployment-status-check" style="margin-bottom: 16px;">
+                  <button mat-raised-button color="accent" 
+                          (click)="checkSingleDeploymentStatus(deploy.IP); $event.stopPropagation()"
+                          [disabled]="isCheckingDeployment(deploy.IP)">
+                    <mat-icon>{{isCheckingDeployment(deploy.IP) ? 'hourglass_empty' : 'refresh'}}</mat-icon>
+                    {{isCheckingDeployment(deploy.IP) ? 'Controllo in corso...' : 'Controlla Stato VM'}}
+                    <mat-spinner diameter="16" *ngIf="isCheckingDeployment(deploy.IP)" 
+                                 style="margin-left: 8px;"></mat-spinner>
+                  </button>
+                </div>
+                
+                <h4>Dispositivi PLC:</h4>
+                <div *ngIf="deploy.Containers && deploy.Containers.length > 0; else noDevices">
+                  <mat-list>
+                    <mat-list-item *ngFor="let container of deploy.Containers; let j = index">
+                      <mat-icon matListItemIcon>developer_board</mat-icon>
+                      <div matListItemTitle>{{container.name || 'PLC-' + (j + 1)}}</div>
+                      <div matListItemLine>IP: {{container.IP}}</div>
+                      <div matListItemMeta>
+                        <!-- <mat-chip [style.background-color]="getDeviceStatusColor(container.status)" 
+                                  [style.color]="'white'">
+                          {{container.status || 'Connected'}}
+                        </mat-chip> -->
+                      </div>
+                    </mat-list-item>
+                  </mat-list>
+                </div>
+                <ng-template #noDevices>
+                  <div class="no-devices">
+                    <mat-icon>info</mat-icon>
+                    <p>Nessun dispositivo PLC configurato</p>
+                  </div>
+                </ng-template>
+              </div>
+            </mat-card-content>
+            
+            <mat-card-actions>
+              <button mat-button color="primary" (click)="editDeployment(deploy); $event.stopPropagation()">
+                <mat-icon>edit</mat-icon>
+                Modifica
+              </button>
+              <button mat-button color="warn" (click)="removeDeployment(deploy.IP); $event.stopPropagation()">
+                <mat-icon>delete</mat-icon>
+                Rimuovi
+              </button>
+            </mat-card-actions>
+          </mat-card>
         </div>
-
-        <h3>User password</h3>
-        <div class="field">
-          <input
-            [(ngModel)]="passw_input"
-            id="passw_input"
-            type="text"
-            class="ip_box"
-            aria-describedby="passw"
-            pInputText
-          />
-        </div>
-      </div>
-    </div>
-
-    <div class="file-upload-container">
-      <h2>Indirizzi ip dei PLCs</h2>
-      <div class="ips_box file-upload-container">
-        <div *ngFor="let container of Containers_input; let i = index">
-          <p class="ip">
-            {{ i + 1 + "\) "
-            }}<strong>{{ container.name }} | {{ container.IP }}</strong>
-          </p>
-        </div>
-      </div>
-      <h4>Name</h4>
-      <input
-        style="max-width: 50%"
-        [(ngModel)]="add_container_name_input"
-        id="add_container_input"
-        type="text"
-        class="ip_box"
-        aria-describedby="Add a plc ip"
-        pInputText
-      />
-      <h4>IP</h4>
-      <input
-        style="max-width: 50%"
-        [(ngModel)]="add_container_ip_input"
-        id="add_container_input"
-        type="text"
-        class="ip_box"
-        aria-describedby="Add a plc ip"
-        pInputText
-      />
-      <br />
-      <button pButton label="Add" (click)="addPlcIp()"></button>
-    </div>
-
-    <p-divider></p-divider>
-    <div style="display: flex; width: 100%; justify-content: end">
-      <button
-        pButton
-        label="Add Deployment"
-        (click)="addDeployment()"
-        [loading]="isLoadingDeploy"
-      ></button>
-    </div>
-
-    <h2>Carica file zip</h2>
-    <div class="file-upload-container">
-      <p-fileUpload
-        mode="advanced"
-        chooseLabel="Choose"
-        name="file"
-        url="http://172.17.0.1:5003/upload_json/"
-        accept=".json"
-        (onUpload)="onUpload($event)"
-      ></p-fileUpload>
-    </div>
-  </p-card>
-</div>
-
-<div class="deployments_container">
-  <p-card *ngFor="let deploy of deployments.RemoteDeployments; index as i">
-    <div class="padding_container">
-      <div class="title_container">
-        <h2>{{ deploy.name }} ({{ deploy.IP }})</h2>
-        <button
-          pButton
-          label="remove"
-          class="button_red1"
-          (click)="removeDeployment(deploy.IP)"
-        ></button>
-      </div>
-
-      <div [ngClass]="isDivActive ? 'null' : 'disable-content'">
-        <h3>Indirizzi ip dei PLCs</h3>
-        <div class="ips_box">
-          <p
-            *ngFor="let container of deploy.Containers; let i = index"
-            class="ip"
-          >
-            {{ i + 1 + "\) " }}<strong>{{ container.IP }}</strong>
-          </p>
-        </div>
-      </div>
-    </div>
-  </p-card>
+      </mat-card-content>
+    </mat-card>
+  </div>
 </div>

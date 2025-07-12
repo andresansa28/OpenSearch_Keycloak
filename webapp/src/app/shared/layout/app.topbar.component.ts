@@ -1,20 +1,27 @@
-import {Component, ElementRef, OnInit, ViewChild} from '@angular/core';
-import {MenuItem} from 'primeng/api';
-import {LayoutService} from "./service/app.layout.service";
-import {KeycloakService} from "keycloak-angular";
+import { Component, ElementRef, OnDestroy, OnInit, ViewChild } from '@angular/core';
+import { KeycloakService } from "keycloak-angular";
+import { KeycloakTokenParsed } from 'keycloak-js';
+import { MenuItem } from 'primeng/api';
+import { Subscription } from 'rxjs';
+import { AnalyzerStatusService } from 'src/app/services/analyzer-status.service';
 import { AuthService } from '../services/authService';
-import { KeycloakProfile, KeycloakTokenParsed } from 'keycloak-js';
-import { Observable } from 'rxjs';
+import { LayoutService } from "./service/app.layout.service";
+
 
 @Component({
   selector: 'app-topbar',
-  templateUrl: './app.topbar.component.html'
+  templateUrl: './app.topbar.component.html',
+  styleUrls: ['./app.topbar.component.css']
 })
-export class AppTopBarComponent implements OnInit {
+export class AppTopBarComponent implements OnInit, OnDestroy {
+
+  analyzerRunning: boolean = false;
 
   items!: MenuItem[];
   
   name! : string;
+
+  private statusSubscription: Subscription | null = null;
 
   @ViewChild('menubutton') menuButton!: ElementRef;
 
@@ -25,21 +32,41 @@ export class AppTopBarComponent implements OnInit {
   constructor(public layoutService: LayoutService,
     private keycloakService: KeycloakService,
     private authService: AuthService,
+    private analyzerStatusService: AnalyzerStatusService
   
     ) {
   }
   
   ngOnInit(): void {
-    const k : KeycloakTokenParsed = this.authService.getLoggedUser()!;
-    this.name = k['preferred_username'];
+    const token : KeycloakTokenParsed = this.authService.getLoggedUser()!;
+    this.name = token['preferred_username'];
+    console.log(token);
+    
+    // Inizia il monitoraggio dello stato dell'analyzer
+    this.analyzerStatusService.startMonitoring();
+    
+    // Sottoscrivi agli aggiornamenti dello stato
+    this.statusSubscription = this.analyzerStatusService.isRunning$.subscribe(
+      (isRunning: boolean) => {
+        this.analyzerRunning = isRunning;
+      }
+    );
+  }
+  
+  ngOnDestroy(): void {
+    // Ferma il monitoraggio
+    this.analyzerStatusService.stopMonitoring();
+    
+    // Pulisci la subscription
+    if (this.statusSubscription) {
+      this.statusSubscription.unsubscribe();
+    }
   }
   
   logout() {
     this.keycloakService.logout(window.location.origin)
   }
   
-  showUserData(){
-    
-  }
+  
  
 }
