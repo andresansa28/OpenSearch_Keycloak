@@ -62,7 +62,10 @@ idp.add_swagger_config(app)
 
 origins = [
     "http://localhost",
+    "http://localhost:4200",
+    "http://localhost:5000",
     "http://localhost:5002",
+    "http://172.17.0.1:5000",
     "http://172.17.0.1:5002",
     "http://172.17.0.1:4200"
 ]
@@ -74,6 +77,18 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Aggiungiamo un handler per le richieste OPTIONS
+@app.options("/{path:path}")
+async def options_handler(request: Request):
+    return JSONResponse(
+        status_code=200,
+        headers={
+            "Access-Control-Allow-Origin": "*",
+            "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
+            "Access-Control-Allow-Headers": "*",
+        }
+    )
 
 
 @app.get("/")
@@ -117,10 +132,23 @@ def get_user_group(user_id: str):
 
 
 @app.post("/user/group/add/", tags=["user-groups"])
-def add_group_to_user(item: UserGroup):
-    with sslpatch.no_ssl_verification():
-        group_id = idp.get_groups([item.group_name])[0].id
-        return idp.add_user_group(user_id=item.user_id, group_id=group_id)
+def add_group_to_user(item: UserGroup, user: OIDCUser = Depends(idp.get_current_user(required_roles=["admin"]))):
+    try:
+        with sslpatch.no_ssl_verification():
+            groups = idp.get_groups([item.group_name])
+            if not groups:
+                return JSONResponse(
+                    status_code=400,
+                    content={"message": {"errorMessage": f"Gruppo '{item.group_name}' non trovato"}}
+                )
+            group_id = groups[0].id
+            result = idp.add_user_group(user_id=item.user_id, group_id=group_id)
+            return result
+    except Exception as e:
+        return JSONResponse(
+            status_code=400,
+            content={"message": {"errorMessage": f"Errore nell'assegnazione del gruppo: {str(e)}"}}
+        )
 
 
 @app.post("/user/create/", tags=["user-management"])

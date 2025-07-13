@@ -1,6 +1,5 @@
+import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
-import { HttpParams } from '@angular/common/http';
 
 @Injectable({
   providedIn: 'root'
@@ -12,45 +11,47 @@ export class UsermanagmentApiService {
 
   constructor(private httpClient: HttpClient) { }
 
-  getUsers(){
-    return this.httpClient.get(this.url+"/users");
+  getUsers() {
+    return this.httpClient.get(this.url + "/users");
   }
 
 
-  removeUser(id:string){
+  removeUser(id: string) {
     let queryParams = new HttpParams();
-    queryParams = queryParams.append("user_id",id)
-    return this.httpClient.delete(this.url+"/user/delete/",{params:queryParams});
+    queryParams = queryParams.append("user_id", id)
+    return this.httpClient.delete(this.url + "/user/delete/", { params: queryParams });
   }
 
-  createUser(username:string, firstname: string, lastname: string, email: any, password: any){
-    const headers = { 'Content-Type': 'application/json'}
-    return this.httpClient.post(this.url+"/user/create/",
-      {username: username,
-        first_name:firstname,
-        last_name:lastname,
-        email:email,
-        password:password
-    },{ headers: headers });
+  createUser(username: string, firstname: string, lastname: string, email: any, password: any) {
+    const headers = { 'Content-Type': 'application/json' }
+    return this.httpClient.post(this.url + "/user/create/",
+      {
+        username: username,
+        first_name: firstname,
+        last_name: lastname,
+        email: email,
+        password: password
+      }, { headers: headers });
   }
 
-  getUserRoles(id:string){
+  getUserRoles(id: string) {
     let queryParams = new HttpParams();
-    queryParams = queryParams.append("user_id",id)
-    return this.httpClient.get(this.url+"/user/group/",{params:queryParams});
+    queryParams = queryParams.append("user_id", id)
+    return this.httpClient.get(this.url + "/user/group/", { params: queryParams });
   }
 
   getAllGroups() {
-    return this.httpClient.get(this.url+"/groups");
+    return this.httpClient.get(this.url + "/groups");
   }
 
-  setUserGroup(id:string,gid:string) {
-    const headers = { 'Content-Type': 'application/json'}
+  setUserGroup(id: string, gid: string) {
+    const headers = { 'Content-Type': 'application/json' }
     console.log(id)
     console.log(gid)
-    return this.httpClient.post(this.url+"/user/group/add/",
+    return this.httpClient.post(this.url + "/user/group/add/",
       {
         user_id: id,
-        group_name:gid
-      },{ headers: headers });  }
+        group_name: gid
+      }, { headers: headers });
+  }
 }

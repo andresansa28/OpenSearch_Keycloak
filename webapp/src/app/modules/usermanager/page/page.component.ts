@@ -201,7 +201,14 @@ export class PageComponent implements OnInit {
         selectedGroupType: typeof this.selectedGroup
       });
 
-      this.service.setUserGroup(this.currentUserId.toString(), this.selectedGroup.toString()).subscribe({
+      // Trova il nome del gruppo dall'ID
+      const selectedGroupObj = this.groups.find(group => group.id === this.selectedGroup);
+      const groupName = selectedGroupObj ? selectedGroupObj.name : this.selectedGroup;
+
+      console.log('Gruppo selezionato:', selectedGroupObj);
+      console.log('Nome gruppo da inviare:', groupName);
+
+      this.service.setUserGroup(this.currentUserId.toString(), groupName.toString()).subscribe({
         next: (response) => {
           console.log('Gruppo assegnato con successo:', response);
           this.snackBar.open('Gruppo assegnato con successo!', 'Chiudi', {

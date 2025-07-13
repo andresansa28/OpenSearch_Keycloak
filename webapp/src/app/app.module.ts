@@ -1,13 +1,14 @@
-import {APP_INITIALIZER, NgModule} from '@angular/core';
-import {BrowserModule} from '@angular/platform-browser';
-import {AppRoutingModule} from './app-routing.module';
-import {AppComponent} from './app.component';
-import {AppLayoutModule} from "./shared/layout/app.layout.module";
-import {KeycloakAngularModule, KeycloakService} from "keycloak-angular";
-import {AuthService} from "./shared/services/authService";
-import { NgxPermissionsModule } from 'ngx-permissions';
+import { HTTP_INTERCEPTORS } from '@angular/common/http';
+import { APP_INITIALIZER, NgModule } from '@angular/core';
+import { BrowserModule } from '@angular/platform-browser';
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
+import { KeycloakAngularModule, KeycloakBearerInterceptor, KeycloakService } from "keycloak-angular";
+import { NgxPermissionsModule } from 'ngx-permissions';
+import { AppRoutingModule } from './app-routing.module';
+import { AppComponent } from './app.component';
+import { AppLayoutModule } from "./shared/layout/app.layout.module";
 import { MaterialModule } from './shared/material-module';
+import { AuthService } from "./shared/services/authService";
 
 function initializeKeycloak(keycloak: KeycloakService) {
   return () =>
@@ -17,7 +18,7 @@ function initializeKeycloak(keycloak: KeycloakService) {
         url: "https://172.17.0.1:8443/auth",
         clientId: "webapp"
       },
-    
+
       initOptions: {
         pkceMethod: 'S256',
         // must match to the configured value in keycloak
@@ -46,6 +47,11 @@ function initializeKeycloak(keycloak: KeycloakService) {
       useFactory: initializeKeycloak,
       multi: true,
       deps: [KeycloakService]
+    },
+    {
+      provide: HTTP_INTERCEPTORS,
+      useClass: KeycloakBearerInterceptor,
+      multi: true
     },
     AuthService
   ],
