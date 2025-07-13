@@ -16,7 +16,7 @@
       <table mat-table [dataSource]="filteredUsers" class="modern-table" matSort>
         <!-- Avatar Column -->
         <ng-container matColumnDef="avatar">
-          <th mat-header-cell *matHeaderCellDef></th>
+          <th mat-header-cell *matHeaderCellDef mat-sort-header>Avatar</th>
           <td mat-cell *matCellDef="let user">
             <div class="user-avatar">
               <mat-icon>account_circle</mat-icon>
@@ -28,10 +28,7 @@
         <ng-container matColumnDef="username">
           <th mat-header-cell *matHeaderCellDef mat-sort-header>Username</th>
           <td mat-cell *matCellDef="let user">
-            <div class="user-info">
-              <span class="username">{{user.username}}</span>
-              <span class="email">{{user.email}}</span>
-            </div>
+            <span class="username">{{user.username}}</span>
           </td>
         </ng-container>
 
@@ -43,13 +40,11 @@
           </td>
         </ng-container>
 
-        <!-- Status Column -->
-        <ng-container matColumnDef="status">
-          <th mat-header-cell *matHeaderCellDef>Status</th>
+        <!-- Email Column -->
+        <ng-container matColumnDef="email">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header>Email</th>
           <td mat-cell *matCellDef="let user">
-            <span class="status-badge" [class.active]="user.isActive" [class.inactive]="!user.isActive">
-              {{user.isActive ? 'Attivo' : 'Inattivo'}}
-            </span>
+            <span class="email">{{user.email}}</span>
           </td>
         </ng-container>
 
@@ -142,10 +137,6 @@
               Password deve essere almeno 8 caratteri
             </mat-error>
           </mat-form-field>
-
-          <mat-slide-toggle formControlName="isActive" class="status-toggle">
-            Utente attivo
-          </mat-slide-toggle>
         </div>
 
         <div class="form-actions">

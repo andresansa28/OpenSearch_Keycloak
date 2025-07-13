@@ -129,8 +129,9 @@ import { Component, OnInit, TemplateRef, ViewChild } from '@angular/core';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { MatDialog } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
-import { MatTableDataSource } from '@angular/material/table';
 import { MatSort } from '@angular/material/sort';
+import { MatTableDataSource } from '@angular/material/table';
+import { UsermanagmentApiService } from 'src/app/services/usermanagment-api.service';
 
 // Interfaces
 interface User {
@@ -142,6 +143,7 @@ interface User {
   isActive: boolean;
   createdAt: Date;
   updatedAt: Date;
+  password?: string; // Optional per la creazione
 }
 
 interface Group {
@@ -154,24 +156,98 @@ interface Group {
 @Component({
   selector: 'app-user-management',
   templateUrl: './page.component.html',
-  standalone:false,
+  standalone: false,
   styleUrls: ['./page.component.scss']
 })
 export class PageComponent implements OnInit {
-deleteUser(arg0: any) {
-throw new Error('Method not implemented.');
-}
-manageGroups(arg0: any) {
-throw new Error('Method not implemented.');
-}
-assignGroup() {
-throw new Error('Method not implemented.');
-}
+  // Implementazione del metodo deleteUser
+  deleteUser(userId: any): void {
+    if (confirm('Sei sicuro di voler eliminare questo utente?')) {
+      this.service.removeUser(userId.toString()).subscribe({
+        next: (response) => {
+          this.loadUsers(); // Ricarica la lista
+          this.snackBar.open('Utente eliminato con successo!', 'Chiudi', {
+            duration: 3000,
+            panelClass: ['success-snackbar']
+          });
+        },
+        error: (error) => {
+          console.error('Errore nell\'eliminazione utente:', error);
+          this.snackBar.open('Errore nell\'eliminazione dell\'utente', 'Chiudi', {
+            duration: 3000,
+            panelClass: ['error-snackbar']
+          });
+        }
+      });
+    }
+  }
+
+  manageGroups(userId: any): void {
+    console.log('Gestione gruppi per utente:', userId, 'tipo:', typeof userId);
+    this.currentUserId = userId;
+    this.loadUserGroups();
+    this.dialog.open(this.groupDialog, {
+      width: '500px',
+      disableClose: false
+    });
+  }
+
+  assignGroup(): void {
+    if (this.currentUserId && this.selectedGroup) {
+      console.log('Assegnazione gruppo:', {
+        userId: this.currentUserId,
+        selectedGroup: this.selectedGroup,
+        userIdType: typeof this.currentUserId,
+        selectedGroupType: typeof this.selectedGroup
+      });
+
+      this.service.setUserGroup(this.currentUserId.toString(), this.selectedGroup.toString()).subscribe({
+        next: (response) => {
+          console.log('Gruppo assegnato con successo:', response);
+          this.snackBar.open('Gruppo assegnato con successo!', 'Chiudi', {
+            duration: 3000,
+            panelClass: ['success-snackbar']
+          });
+          this.dialog.closeAll();
+          this.selectedGroup = null;
+          this.currentUserId = null;
+        },
+        error: (error) => {
+          console.error('Errore completo nell\'assegnazione gruppo:', error);
+          console.error('Error message:', error.error?.message || error.message);
+          console.error('Error status:', error.status);
+
+          let errorMessage = 'Errore nell\'assegnazione del gruppo';
+          if (error.error?.message?.errorMessage) {
+            errorMessage = error.error.message.errorMessage;
+          } else if (error.error?.message) {
+            errorMessage = error.error.message;
+          } else if (error.message) {
+            errorMessage = error.message;
+          }
+
+          this.snackBar.open(errorMessage, 'Chiudi', {
+            duration: 5000,
+            panelClass: ['error-snackbar']
+          });
+        }
+      });
+    } else {
+      console.error('Dati mancanti per assegnazione gruppo:', {
+        currentUserId: this.currentUserId,
+        selectedGroup: this.selectedGroup
+      });
+      this.snackBar.open('Seleziona un utente e un gruppo', 'Chiudi', {
+        duration: 3000,
+        panelClass: ['error-snackbar']
+      });
+    }
+  }
   @ViewChild('groupDialog') groupDialog!: TemplateRef<any>;
   @ViewChild(MatSort) sort!: MatSort;
 
   // Table properties
-  displayedColumns: string[] = ['avatar', 'username', 'fullName', 'status', 'actions'];
+  displayedColumns: string[] = ['avatar', 'username', 'fullName', 'email', 'actions'];
   users: User[] = [];
   filteredUsers = new MatTableDataSource<User>([]);
   searchTerm = '';
@@ -190,16 +266,15 @@ throw new Error('Method not implemented.');
   constructor(
     private fb: FormBuilder,
     private dialog: MatDialog,
-    private snackBar: MatSnackBar
+    private snackBar: MatSnackBar,
+    private service: UsermanagmentApiService
   ) {
     this.userForm = this.createUserForm();
-    this.initializeData();
   }
 
   ngOnInit(): void {
     this.loadUsers();
     this.loadGroups();
-    this.setupSearch();
   }
 
   ngAfterViewInit(): void {
@@ -213,102 +288,89 @@ throw new Error('Method not implemented.');
       email: ['', [Validators.required, Validators.email]],
       firstName: ['', [Validators.required]],
       lastName: ['', [Validators.required]],
-      password: ['', [Validators.required, Validators.minLength(8)]],
-      isActive: [true]
+      password: ['', [Validators.required, Validators.minLength(4)]]
     });
   }
 
-  // Data initialization
-  private initializeData(): void {
-    // Mock data - replace with actual API calls
-    this.users = [
-      {
-        id: 1,
-        username: 'john_doe',
-        email: 'john.doe@example.com',
-        firstName: 'John',
-        lastName: 'Doe',
-        isActive: true,
-        createdAt: new Date('2024-01-15'),
-        updatedAt: new Date('2024-01-15')
-      },
-      {
-        id: 2,
-        username: 'jane_smith',
-        email: 'jane.smith@example.com',
-        firstName: 'Jane',
-        lastName: 'Smith',
-        isActive: false,
-        createdAt: new Date('2024-01-20'),
-        updatedAt: new Date('2024-01-25')
-      },
-      {
-        id: 3,
-        username: 'admin',
-        email: 'admin@example.com',
-        firstName: 'Admin',
-        lastName: 'User',
-        isActive: true,
-        createdAt: new Date('2024-01-10'),
-        updatedAt: new Date('2024-01-10')
-      }
-    ];
 
-    this.groups = [
-      {
-        id: 1,
-        name: 'Amministratori',
-        description: 'Accesso completo al sistema',
-        permissions: ['read', 'write', 'delete', 'admin']
-      },
-      {
-        id: 2,
-        name: 'Utenti Standard',
-        description: 'Accesso limitato alle funzionalità base',
-        permissions: ['read', 'write']
-      },
-      {
-        id: 3,
-        name: 'Visualizzatori',
-        description: 'Solo visualizzazione dei dati',
-        permissions: ['read']
-      }
-    ];
-  }
 
   // Data loading methods
   private loadUsers(): void {
-    // In a real application, this would be an API call
-    this.filteredUsers.data = this.users;
+    this.service.getUsers().subscribe({
+      next: (response: any) => {
+        // Gestisce sia risposte dirette che wrapped
+        const data = response.data || response;
+        this.users = this.transformApiUsersData(data);
+        this.filteredUsers.data = [...this.users];
+        console.log('Users loaded:', this.users);
+      },
+      error: (error) => {
+        console.error('Errore nel caricamento utenti:', error);
+        this.snackBar.open('Errore nel caricamento degli utenti', 'Chiudi', {
+          duration: 3000,
+          panelClass: ['error-snackbar']
+        });
+      }
+    });
+  }
+
+  private transformApiUsersData(apiData: any[]): User[] {
+    if (!Array.isArray(apiData)) {
+      return [];
+    }
+
+    return apiData.map((apiUser, index) => {
+      console.log('Trasformazione utente API:', apiUser);
+      return {
+        id: apiUser.id || apiUser.userId || apiUser.user_id || index + 1,
+        username: apiUser.username || apiUser.userName || '',
+        email: apiUser.email || '',
+        firstName: apiUser.firstName || apiUser.first_name || '',
+        lastName: apiUser.lastName || apiUser.last_name || '',
+        isActive: apiUser.isActive !== undefined ? apiUser.isActive : true,
+        createdAt: apiUser.createdAt ? new Date(apiUser.createdAt) : new Date(),
+        updatedAt: apiUser.updatedAt ? new Date(apiUser.updatedAt) : new Date()
+      };
+    });
   }
 
   private loadGroups(): void {
-    // In a real application, this would be an API call
-    console.log('Groups loaded:', this.groups);
+    this.service.getAllGroups().subscribe({
+      next: (response: any) => {
+        // Gestisce sia risposte dirette che wrapped
+        const data = response.data || response;
+        this.groups = data;
+        console.log('Groups loaded:', this.groups);
+        console.log('Struttura primo gruppo:', this.groups[0]);
+      },
+      error: (error) => {
+        console.error('Errore nel caricamento gruppi:', error);
+      }
+    });
   }
 
-  // Search functionality
-  private setupSearch(): void {
-    this.filteredUsers.filterPredicate = (user: User, filter: string) => {
-      const searchText = filter.toLowerCase();
-      return (
-        user.username.toLowerCase().includes(searchText) ||
-        user.firstName.toLowerCase().includes(searchText) ||
-        user.lastName.toLowerCase().includes(searchText) ||
-        user.email.toLowerCase().includes(searchText)
-      );
-    };
+  private loadUserGroups(): void {
+    if (this.currentUserId) {
+      this.service.getUserRoles(this.currentUserId.toString()).subscribe({
+        next: (userGroups: any) => {
+          if (userGroups && userGroups.length > 0) {
+            this.selectedGroup = userGroups[0].id || userGroups[0].name;
+          }
+        },
+        error: (error) => {
+          console.error('Errore nel caricamento gruppi utente:', error);
+        }
+      });
+    }
   }
 
-  onSearchChange(): void {
-    this.filteredUsers.filter = this.searchTerm.trim().toLowerCase();
-  }
+
 
   // Form methods
   onSubmit(): void {
     if (this.userForm.valid) {
       const formData = this.userForm.value;
-      
+
       if (this.isEditMode && this.editingUserId) {
         this.updateUser(this.editingUserId, formData);
       } else {
@@ -327,7 +389,6 @@ throw new Error('Method not implemented.');
 
   resetForm(): void {
     this.userForm.reset();
-    this.userForm.patchValue({ isActive: true });
     this.isEditMode = false;
     this.editingUserId = null;
     this.hidePassword = true;
@@ -335,22 +396,31 @@ throw new Error('Method not implemented.');
 
   // CRUD Operations
   createUser(userData: Partial<User>): void {
-    const newUser: User = {
-      id: Math.max(...this.users.map(u => u.id)) + 1,
-      username: userData.username!,
-      email: userData.email!,
-      firstName: userData.firstName!,
-      lastName: userData.lastName!,
-      isActive: userData.isActive ?? true,
-      createdAt: new Date(),
-      updatedAt: new Date()
-    };
-
-    this.users.push(newUser);
-    this.filteredUsers.data = [...this.users];
-    this.resetForm();
-    
-    // this.snackBar('Utente creato con successo!', 'success');
+    this.service.createUser(
+      userData.username!,
+      userData.firstName!,
+      userData.lastName!,
+      userData.email!,
+      userData.password!
+    ).subscribe({
+      next: (response: any) => {
+        console.log('Utente creato, risposta API:', response);
+        // Ricarica la lista utenti dopo la creazione per avere gli ID corretti
+        this.loadUsers();
+        this.resetForm();
+        this.snackBar.open('Utente creato con successo!', 'Chiudi', {
+          duration: 3000,
+          panelClass: ['success-snackbar']
+        });
+      },
+      error: (error) => {
+        console.error('Errore nella creazione utente:', error);
+        this.snackBar.open('Errore nella creazione dell\'utente', 'Chiudi', {
+          duration: 3000,
+          panelClass: ['error-snackbar']
+        });
+      }
+    });
   }
 
   editUser(userId: number): void {
@@ -358,25 +428,42 @@ throw new Error('Method not implemented.');
     if (user) {
       this.isEditMode = true;
       this.editingUserId = userId;
-      
+
       // Remove password validation for edit mode
       this.userForm.get('password')?.clearValidators();
       this.userForm.get('password')?.updateValueAndValidity();
-      
+
       this.userForm.patchValue({
         username: user.username,
         email: user.email,
         firstName: user.firstName,
-        lastName: user.lastName,
-        isActive: user.isActive
+        lastName: user.lastName
       });
-      
+
       // Scroll to form
       document.querySelector('.form-section')?.scrollIntoView({ behavior: 'smooth' });
     }
   }
-
   updateUser(userId: number, userData: Partial<User>): void {
+    // Per ora implementiamo una logica di aggiornamento locale
+    // In futuro si potrà aggiungere un endpoint API per l'aggiornamento
+    const userIndex = this.users.findIndex(u => u.id === userId);
+    if (userIndex !== -1) {
+      this.users[userIndex] = {
+        ...this.users[userIndex],
+        username: userData.username!,
+        email: userData.email!,
+        firstName: userData.firstName!,
+        lastName: userData.lastName!,
+        updatedAt: new Date()
+      };
+      this.filteredUsers.data = [...this.users];
+      this.resetForm();
+      this.snackBar.open('Utente aggiornato con successo!', 'Chiudi', {
+        duration: 3000,
+        panelClass: ['success-snackbar']
+      });
+    }
   }
 
 }

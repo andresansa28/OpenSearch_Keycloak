@@ -8,7 +8,7 @@ import { HttpParams } from '@angular/common/http';
 
 
 export class UsermanagmentApiService {
-  private url = 'http://localhost:5000'
+  private url = 'http://172.17.0.1:5000'
 
   constructor(private httpClient: HttpClient) { }
 
@@ -46,6 +46,8 @@ export class UsermanagmentApiService {
 
   setUserGroup(id:string,gid:string) {
     const headers = { 'Content-Type': 'application/json'}
+    console.log(id)
+    console.log(gid)
     return this.httpClient.post(this.url+"/user/group/add/",
       {
         user_id: id,

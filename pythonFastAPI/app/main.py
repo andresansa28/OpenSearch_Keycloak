@@ -63,7 +63,8 @@ idp.add_swagger_config(app)
 origins = [
     "http://localhost",
     "http://localhost:5002",
-    "http://172.17.0.1:5002"
+    "http://172.17.0.1:5002",
+    "http://172.17.0.1:4200"
 ]
 
 app.add_middleware(
