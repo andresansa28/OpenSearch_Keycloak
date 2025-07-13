@@ -293,9 +293,9 @@ export class PageComponent implements OnInit {
   private createUserForm(): FormGroup {
     return this.fb.group({
       username: ['', [Validators.required, Validators.minLength(3)]],
-      email: ['', [Validators.required, Validators.email]],
-      firstName: ['', [Validators.required]],
-      lastName: ['', [Validators.required]],
+      email: ['', [Validators.nullValidator, Validators.email]],
+      firstName: ['', [Validators.nullValidator]],
+      lastName: ['', [Validators.nullValidator]],
       password: ['', [Validators.required, Validators.minLength(4)]]
     });
   }

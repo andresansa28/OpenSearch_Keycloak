@@ -1,0 +1,39 @@
+# File di stato temporanei
+*.done
+.done
+
+# Certificati e chiavi (contenuto sensibile)
+certs/
+*.key
+*.pem
+*.crt
+*.p12
+*.jks
+
+# Cache Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Logs
+*.log
+logs/
+
+# File di configurazione locale
+.env
+.env.local
+
+# File temporanei
+*.tmp
+*.temp
+*~
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
