@@ -54,4 +54,28 @@ export class UsermanagmentApiService {
         group_name: gid
       }, { headers: headers });
   }
+
+  createGroup(groupName: string, description?: string) {
+    const headers = { 'Content-Type': 'application/json' }
+    return this.httpClient.post(this.url + "/group/create/",
+      {
+        name: groupName,
+        description: description || `Gruppo per deployment ${groupName}`
+      }, { headers: headers });
+  }
+
+  deleteGroup(groupName: string) {
+    let queryParams = new HttpParams();
+    queryParams = queryParams.append("group_name", groupName);
+    return this.httpClient.delete(this.url + "/group/delete/", { params: queryParams });
+  }
+
+  removeUserFromGroup(userId: string, groupName: string) {
+    const headers = { 'Content-Type': 'application/json' }
+    return this.httpClient.post(this.url + "/user/group/remove/",
+      {
+        user_id: userId,
+        group_name: groupName
+      }, { headers: headers });
+  }
 }

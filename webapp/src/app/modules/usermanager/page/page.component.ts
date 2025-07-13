@@ -185,68 +185,67 @@ export class PageComponent implements OnInit {
   manageGroups(userId: any): void {
     console.log('Gestione gruppi per utente:', userId, 'tipo:', typeof userId);
     this.currentUserId = userId;
+    this.selectedGroups = [];
     this.loadUserGroups();
     this.dialog.open(this.groupDialog, {
-      width: '500px',
+      width: '600px',
       disableClose: false
     });
   }
 
-  assignGroup(): void {
-    if (this.currentUserId && this.selectedGroup) {
-      console.log('Assegnazione gruppo:', {
-        userId: this.currentUserId,
-        selectedGroup: this.selectedGroup,
-        userIdType: typeof this.currentUserId,
-        selectedGroupType: typeof this.selectedGroup
-      });
+  assignSelectedGroups(): void {
+    if (this.currentUserId && this.selectedGroups.length > 0) {
+      const assignments = this.selectedGroups.map(group =>
+        this.service.setUserGroup(this.currentUserId!.toString(), group.name).toPromise()
+      );
 
-      // Trova il nome del gruppo dall'ID
-      const selectedGroupObj = this.groups.find(group => group.id === this.selectedGroup);
-      const groupName = selectedGroupObj ? selectedGroupObj.name : this.selectedGroup;
-
-      console.log('Gruppo selezionato:', selectedGroupObj);
-      console.log('Nome gruppo da inviare:', groupName);
-
-      this.service.setUserGroup(this.currentUserId.toString(), groupName.toString()).subscribe({
-        next: (response) => {
-          console.log('Gruppo assegnato con successo:', response);
-          this.snackBar.open('Gruppo assegnato con successo!', 'Chiudi', {
+      // Esegui tutte le assegnazioni in parallelo
+      Promise.all(assignments).then(
+        responses => {
+          console.log('Tutti i gruppi assegnati con successo:', responses);
+          this.snackBar.open(`${this.selectedGroups.length} gruppi assegnati con successo!`, 'Chiudi', {
             duration: 3000,
             panelClass: ['success-snackbar']
           });
           this.dialog.closeAll();
-          this.selectedGroup = null;
-          this.currentUserId = null;
-        },
-        error: (error) => {
-          console.error('Errore completo nell\'assegnazione gruppo:', error);
-          console.error('Error message:', error.error?.message || error.message);
-          console.error('Error status:', error.status);
-
-          let errorMessage = 'Errore nell\'assegnazione del gruppo';
-          if (error.error?.message?.errorMessage) {
-            errorMessage = error.error.message.errorMessage;
-          } else if (error.error?.message) {
-            errorMessage = error.error.message;
-          } else if (error.message) {
-            errorMessage = error.message;
-          }
-
-          this.snackBar.open(errorMessage, 'Chiudi', {
+          this.selectedGroups = [];
+          this.loadUserGroups(); // Ricarica i gruppi dell'utente
+        }
+      ).catch(
+        error => {
+          console.error('Errore nell\'assegnazione di alcuni gruppi:', error);
+          this.snackBar.open('Errore nell\'assegnazione di alcuni gruppi', 'Chiudi', {
             duration: 5000,
             panelClass: ['error-snackbar']
           });
         }
-      });
+      );
     } else {
-      console.error('Dati mancanti per assegnazione gruppo:', {
-        currentUserId: this.currentUserId,
-        selectedGroup: this.selectedGroup
-      });
-      this.snackBar.open('Seleziona un utente e un gruppo', 'Chiudi', {
+      this.snackBar.open('Seleziona almeno un gruppo da assegnare', 'Chiudi', {
         duration: 3000,
         panelClass: ['error-snackbar']
+      });
+    }
+  }
+
+  removeUserFromGroup(group: Group): void {
+    if (this.currentUserId && group) {
+      this.service.removeUserFromGroup(this.currentUserId.toString(), group.name).subscribe({
+        next: (response) => {
+          console.log('Utente rimosso dal gruppo con successo:', response);
+          this.snackBar.open(`Rimosso dal gruppo '${group.name}'`, 'Chiudi', {
+            duration: 3000,
+            panelClass: ['success-snackbar']
+          });
+          this.loadUserGroups(); // Ricarica i gruppi dell'utente
+        },
+        error: (error) => {
+          console.error('Errore nella rimozione dal gruppo:', error);
+          this.snackBar.open('Errore nella rimozione dal gruppo', 'Chiudi', {
+            duration: 5000,
+            panelClass: ['error-snackbar']
+          });
+        }
       });
     }
   }
@@ -266,7 +265,9 @@ export class PageComponent implements OnInit {
   hidePassword = true;
 
   // Dialog properties
-  selectedGroup: number | null = null;
+  selectedGroups: Group[] = [];
+  userCurrentGroups: Group[] = [];
+  availableGroups: Group[] = [];
   currentUserId: number | null = null;
   groups: Group[] = [];
 
@@ -360,12 +361,33 @@ export class PageComponent implements OnInit {
     if (this.currentUserId) {
       this.service.getUserRoles(this.currentUserId.toString()).subscribe({
         next: (userGroups: any) => {
-          if (userGroups && userGroups.length > 0) {
-            this.selectedGroup = userGroups[0].id || userGroups[0].name;
+          console.log('Gruppi utente caricati:', userGroups);
+
+          // Converti i gruppi dell'utente nel formato corretto
+          if (userGroups && Array.isArray(userGroups)) {
+            this.userCurrentGroups = userGroups.map((ug: any) => ({
+              id: ug.id || ug.name,
+              name: ug.name,
+              description: ug.description || '',
+              permissions: []
+            }));
+          } else {
+            this.userCurrentGroups = [];
           }
+
+          // Calcola i gruppi disponibili (tutti i gruppi meno quelli già assegnati)
+          const currentGroupNames = this.userCurrentGroups.map(g => g.name);
+          this.availableGroups = this.groups.filter(group =>
+            !currentGroupNames.includes(group.name)
+          );
+
+          console.log('Gruppi attuali:', this.userCurrentGroups);
+          console.log('Gruppi disponibili:', this.availableGroups);
         },
         error: (error) => {
           console.error('Errore nel caricamento gruppi utente:', error);
+          this.userCurrentGroups = [];
+          this.availableGroups = [...this.groups];
         }
       });
     }

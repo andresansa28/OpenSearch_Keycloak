@@ -163,24 +163,44 @@
   </div>
 
   <mat-dialog-content class="dialog-content">
+    <!-- Gruppi attualmente assegnati -->
+    <div class="current-groups" *ngIf="userCurrentGroups.length > 0">
+      <h4>Gruppi Attualmente Assegnati</h4>
+      <div class="current-groups-chips">
+        <mat-chip-set>
+          <mat-chip *ngFor="let group of userCurrentGroups" class="current-group-chip">
+            <span>{{group.name}}</span>
+            <button matChipRemove (click)="removeUserFromGroup(group)">
+              <mat-icon>cancel</mat-icon>
+            </button>
+          </mat-chip>
+        </mat-chip-set>
+      </div>
+    </div>
+
+    <mat-divider *ngIf="userCurrentGroups.length > 0" style="margin: 16px 0;"></mat-divider>
+
+    <!-- Selezione nuovi gruppi -->
     <div class="group-selection">
-      <h4>Seleziona gruppo per l'utente</h4>
-      <mat-radio-group [(ngModel)]="selectedGroup" class="group-radio-group">
-        <mat-radio-button *ngFor="let group of groups" [value]="group.id" class="group-option">
-          <div class="group-info">
-            <span class="group-name">{{group.name}}</span>
-            <span class="group-description">{{group.description}}</span>
-          </div>
-        </mat-radio-button>
-      </mat-radio-group>
+      <h4>Assegna Nuovi Gruppi</h4>
+      <div class="available-groups">
+        <mat-selection-list [(ngModel)]="selectedGroups" [multiple]="true">
+          <mat-list-option *ngFor="let group of availableGroups" [value]="group" class="group-option">
+            <div class="group-info">
+              <span class="group-name">{{group.name}}</span>
+              <span class="group-description">{{group.description || 'Nessuna descrizione'}}</span>
+            </div>
+          </mat-list-option>
+        </mat-selection-list>
+      </div>
     </div>
   </mat-dialog-content>
 
   <mat-dialog-actions class="dialog-actions">
     <button mat-button mat-dialog-close>Annulla</button>
-    <button mat-raised-button color="primary" (click)="assignGroup()" [disabled]="!selectedGroup">
+    <button mat-raised-button color="primary" (click)="assignSelectedGroups()" [disabled]="selectedGroups.length === 0">
       <mat-icon>group_add</mat-icon>
-      Assegna Gruppo
+      Assegna Gruppi Selezionati ({{selectedGroups.length}})
     </button>
   </mat-dialog-actions>
 </ng-template>
