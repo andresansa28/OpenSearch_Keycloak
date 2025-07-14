@@ -440,10 +440,20 @@ async def create_upload_file(file: UploadFile = File(...)):
 
 @app.get("/force_opensearch_config")
 def force_opensearch_config():
-    opensearch_management.opensearch_first_setup(es, get_remote_deployments())
+    # Rileggi il contenuto aggiornato del config.json
+    with open("../Config.json", "r") as jsonfile:
+        data = json.load(jsonfile)
+
+    # Avvia la configurazione iniziale di OpenSearch
+    opensearch_management.opensearch_first_setup(es, data["RemoteDeployments"])
+
+    # Modifica solo il campo desiderato
     data["opensearch_configured"] = "True"
+
+    # Scrivi il nuovo file, preservando tutto il resto
     with open("../Config.json", "w") as jsonfile:
         json.dump(data, jsonfile, indent=2)
+
     return "Opensearch configured"
 
 

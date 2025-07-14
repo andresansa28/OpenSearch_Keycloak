@@ -272,7 +272,7 @@ export class DeploymentComponent implements OnInit, OnDestroy {
 
   // Metodo per creare automaticamente un gruppo per il deployment
   private createGroupForDeployment(deploymentName: string): void {
-    const groupName = `deployment-${deploymentName}`;
+    const groupName = `${deploymentName}`;
     const description = `Gruppo automatico per il deployment ${deploymentName}`;
 
     // Prima mostra notifica del deployment creato
