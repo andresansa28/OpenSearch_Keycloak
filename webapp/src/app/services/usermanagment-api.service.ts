@@ -78,4 +78,9 @@ export class UsermanagmentApiService {
         group_name: groupName
       }, { headers: headers });
   }
+
+  updateUser(userData: any) {
+  return this.httpClient.put(`${this.url}/user/update/`, userData);
+}
+
 }

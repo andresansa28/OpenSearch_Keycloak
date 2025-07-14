@@ -89,6 +89,8 @@
           <mat-form-field appearance="outline">
             <mat-label>Username</mat-label>
             <input matInput formControlName="username" placeholder="Inserisci username">
+            <mat-hint *ngIf="isEditMode">Il campo username non può essere modificato</mat-hint>
+            <mat-hint *ngIf="!isEditMode">Attenzione: l'username non potrà essere modificato dopo la creazione</mat-hint>
             <mat-error *ngIf="userForm.get('username')?.hasError('required')">
               Username è obbligatorio
             </mat-error>

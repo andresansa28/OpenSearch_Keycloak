@@ -1,130 +1,3 @@
-// import {Component, OnInit} from '@angular/core';
-// import {UsermanagmentApiService} from "../../../services/usermanagment-api.service";
-// import {MessageService} from "primeng/api";
-// import {FormBuilder, FormControl, FormGroup} from "@angular/forms";
-
-// @Component({
-//   selector: 'app-page',
-//   templateUrl: './page.component.html',
-//   styleUrls: ['./page.component.scss'],
-//   providers: [MessageService]
-// })
-
-// export class PageComponent implements OnInit{
-//   myGroup!: FormGroup
-//   constructor(
-//     private service:UsermanagmentApiService,
-//     private messageService:MessageService,
-//     private fb: FormBuilder
-//   ) { }
-
-//   users! : any[]
-//   username!: string;
-//   firstname!: string;
-//   lastname!:string;
-//   email!: string;
-//   password!: string;
-//   productDialog: boolean = false;
-//   groups!: any[];
-//   checked: boolean = false;
-//   selectedValue: any;
-//   editingUser!: string;
-//   async ngOnInit(): Promise<void> {
-//     this.users = await this.getUsers()
-
-//   }
-
-
-//   async getUsers(): Promise<any>{
-//     this.service.getUsers().subscribe((data: any) => {this.users = data})
-//   }
-
-//   async deleteUser(userid:string){
-//     this.service.removeUser(userid).subscribe({
-//       next:(v) => {
-//         this.messageService.add({severity:'success', summary:'Success', detail:'User Deleted'})
-//         this.testA()
-//       },
-//       error:(e) => {this.messageService.add({severity:'error', summary:'Error', detail:e["error"]["message"]["errorMessage"]})},
-//       complete: () => console.info("complete")
-//       }
-//     )
-//   }
-//   async createUser(){
-//     this.service.createUser(
-//       this.username,
-//       this.firstname,
-//       this.lastname,
-//       this.email,
-//       this.password).subscribe(
-//       {
-//         next: (v) => {
-//           this.users.push(v)
-//           this.messageService.add({severity:'success', summary:'Success', detail:'User Created'})
-//         },
-//         error: (e) => {
-//           this.messageService.add({severity:'error', summary:'Error', detail:e["error"]["message"]["errorMessage"]})
-//         },
-//         complete: () => console.info('complete')
-//       }
-//     )
-//   }
-
-//   async testA(){
-//     this.service.getUsers().subscribe((data: any) => {this.users = data})
-//   }
-
-//   async editUser(user: any) {
-//     this.productDialog = true
-//     this.editingUser = user
-//     this.service.getUserRoles(user).subscribe(
-//       {
-//         next: (v:any) => {
-//           if (v.length > 0){
-//             this.selectedValue = v[0].name
-//           }
-//         },
-//         error: (e) => {
-//           this.messageService.add({severity:'error', summary:'Error', detail:e["error"]["message"]["errorMessage"]})
-//         },
-//         complete: () => console.info('complete')
-//       }
-//     )
-
-//     this.service.getAllGroups().subscribe(
-//       {
-//         next: (v:any) => {
-//           this.groups = v
-//         },
-//         error: (e) => {
-//           this.messageService.add({severity:'error', summary:'Error', detail:e["error"]["message"]["errorMessage"]})
-//         },
-//         complete: () => console.info('complete')
-//       }
-//     )
-//   }
-
-
-
-//   changeValue() {
-//     this.service.setUserGroup(this.editingUser,this.selectedValue).subscribe(
-//       {
-//         next: (v:any) => {},
-//         error: (e) => {
-//           this.messageService.add({severity:'error', summary:'Error', detail:e["error"]["message"]["errorMessage"]})
-//         },
-//         complete: () => {
-//           this.productDialog = false
-//           this.selectedValue = ""
-//         }
-//       }
-//     )
-//   }
-
-
-// }
-
-
 import { Component, OnInit, TemplateRef, ViewChild } from '@angular/core';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { MatDialog } from '@angular/material/dialog';
@@ -421,6 +294,13 @@ export class PageComponent implements OnInit {
     this.isEditMode = false;
     this.editingUserId = null;
     this.hidePassword = true;
+
+    // Re-enable username field when exiting edit mode
+    this.userForm.get('username')?.enable();
+
+    // Re-add password validation when creating new user
+    this.userForm.get('password')?.setValidators([Validators.required, Validators.minLength(4)]);
+    this.userForm.get('password')?.updateValueAndValidity();
   }
 
   // CRUD Operations
@@ -462,6 +342,9 @@ export class PageComponent implements OnInit {
       this.userForm.get('password')?.clearValidators();
       this.userForm.get('password')?.updateValueAndValidity();
 
+      // Disable username field in edit mode (Keycloak doesn't allow username changes)
+      this.userForm.get('username')?.disable();
+
       this.userForm.patchValue({
         username: user.username,
         email: user.email,
@@ -473,26 +356,56 @@ export class PageComponent implements OnInit {
       document.querySelector('.form-section')?.scrollIntoView({ behavior: 'smooth' });
     }
   }
+
+
   updateUser(userId: number, userData: Partial<User>): void {
-    // Per ora implementiamo una logica di aggiornamento locale
-    // In futuro si potrà aggiungere un endpoint API per l'aggiornamento
-    const userIndex = this.users.findIndex(u => u.id === userId);
-    if (userIndex !== -1) {
-      this.users[userIndex] = {
-        ...this.users[userIndex],
-        username: userData.username!,
-        email: userData.email!,
-        firstName: userData.firstName!,
-        lastName: userData.lastName!,
-        updatedAt: new Date()
-      };
-      this.filteredUsers.data = [...this.users];
-      this.resetForm();
-      this.snackBar.open('Utente aggiornato con successo!', 'Chiudi', {
-        duration: 3000,
-        panelClass: ['success-snackbar']
-      });
-    }
+    const updatedUser = {
+      id: userId,
+      username: userData.username || '',
+      firstName: userData.firstName || '',
+      lastName: userData.lastName || '',
+      email: userData.email || '',
+      enabled: true,
+      emailVerified: false,
+      attributes: {},
+
+      // Campi aggiuntivi obbligatori
+      createdTimestamp: Date.now(),
+      totp: false,
+      disableableCredentialTypes: [],
+      requiredActions: [],
+      notBefore: 0,
+    };
+
+
+    console.log("Payload che sto inviando:", updatedUser);
+    this.service.updateUser(updatedUser).subscribe({
+      next: () => {
+        const userIndex = this.users.findIndex(u => u.id === userId);
+        if (userIndex !== -1) {
+          this.users[userIndex] = {
+            ...this.users[userIndex],
+            ...userData,
+            updatedAt: new Date()
+          };
+          this.filteredUsers.data = [...this.users];
+        }
+        this.resetForm();
+        this.snackBar.open('Utente aggiornato con successo!', 'Chiudi', {
+          duration: 3000,
+          panelClass: ['success-snackbar']
+        });
+      },
+      error: (err) => {
+        console.error('Errore durante l\'aggiornamento:', err);
+        this.snackBar.open('Errore durante l\'aggiornamento utente.', 'Chiudi', {
+          duration: 3000,
+          panelClass: ['error-snackbar']
+        });
+      }
+    });
   }
+
+
 
 }

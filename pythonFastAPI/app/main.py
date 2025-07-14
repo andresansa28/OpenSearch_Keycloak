@@ -8,7 +8,7 @@ import uvicorn
 from fastapi import FastAPI, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import OAuth2PasswordBearer
-from fastapi_keycloak import FastAPIKeycloak, KeycloakError, OIDCUser
+from fastapi_keycloak import FastAPIKeycloak, KeycloakError, OIDCUser, KeycloakUser
 from opensearchpy import OpenSearch, helpers
 from pydantic import BaseModel
 from starlette.requests import Request
@@ -123,6 +123,11 @@ class GroupCreate(BaseModel):
 def get_users(user: OIDCUser = Depends(idp.get_current_user(required_roles=["admin"]))):
     with sslpatch.no_ssl_verification():
         return idp.get_all_users()
+    
+@app.put("/user/update/", tags=["user-management"])
+def update_user(user: KeycloakUser, current_user: OIDCUser = Depends(idp.get_current_user(required_roles=["admin"]))):
+    with sslpatch.no_ssl_verification():
+        return idp.update_user(user)
 
 
 @app.get("/groups", tags=["user-groups"])
@@ -254,11 +259,21 @@ def create_user(item: User, user: OIDCUser = Depends(idp.get_current_user(requir
                                email=item.email, password=item.password, send_email_verification=False)
 
 
+
+
+
+
 @app.delete("/user/delete/", tags=["user-management"])
 def delete_user(user_id: str, user: OIDCUser = Depends(idp.get_current_user(required_roles=["admin"]))):
     with sslpatch.no_ssl_verification():
         return idp.delete_user(user_id=user_id)
 
+@app.put("/user/update", tags=["user-management"])
+def update_user(self, user: KeycloakUser):
+    response = self._admin_request(url=f'{self.users_uri}/{user.id}', data=user.__dict__, method=HTTPMethod.PUT)
+    if response.status_code == 204:  # Update successful
+        return self.get_user(user_id=user.id)
+    return response
 
 @app.delete("/group/delete/", tags=["user-groups"])
 def delete_group(group_name: str):
@@ -274,7 +289,7 @@ def delete_group(group_name: str):
                 }
             
             # Usa l'API diretta di Keycloak per eliminare il gruppo
-            # Ottieni il token admin
+            # Ottieni il token admin dal realm master
             token_url = "https://172.17.0.1:8443/auth/realms/master/protocol/openid-connect/token"
             token_data = {
                 "username": "admin",
@@ -289,7 +304,7 @@ def delete_group(group_name: str):
             
             admin_token = token_response.json()["access_token"]
             
-            # Elimina il gruppo usando il suo ID
+            # Elimina il gruppo usando il suo ID, nel realm ICSConsole
             group_id = existing_groups[0].id
             delete_url = f"https://172.17.0.1:8443/auth/admin/realms/ICSConsole/groups/{group_id}"
             
