@@ -64,7 +64,7 @@ export class AppTopBarComponent implements OnInit, OnDestroy {
   }
   
   logout() {
-    this.keycloakService.logout(window.location.origin)
+    this.authService.logout()
   }
   
   

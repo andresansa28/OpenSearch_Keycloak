@@ -7,28 +7,28 @@
   "greynoise_api_key": "5ae9wOgoA9SWXnrY7u1S09drGy509e4MOYnLP39YZ5Pqi3oADIiQMIiBtjfdTW88",
   "RemoteDeployments": [
     {
-      "name": "test1",
-      "IP": "fdfdfd",
-      "user": "fdfdfd",
-      "passw": "dfdfd",
+      "name": "prova",
+      "IP": "1232131",
+      "user": "32132",
+      "passw": "323232",
       "active": true,
       "Containers": [
         {
-          "IP": "fdfd",
-          "name": "fddf"
+          "IP": "3232",
+          "name": "3232"
         }
       ]
     },
     {
-      "name": "test2",
-      "IP": "fdfd",
-      "user": "fdfdf",
-      "passw": "fdfdfd",
+      "name": "prova2",
+      "IP": "3343",
+      "user": "fdfd",
+      "passw": "dsdsd",
       "active": true,
       "Containers": [
         {
-          "IP": "fdfdfd",
-          "name": "fdfd"
+          "IP": "dsdsds",
+          "name": "dsds"
         }
       ]
     }

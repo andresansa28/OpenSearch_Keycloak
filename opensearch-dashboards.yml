@@ -17,10 +17,10 @@ opensearch.ssl.verificationMode: full
 
 opensearch.requestHeadersWhitelist: ["securitytenant", "Authorization"]
 opensearch_security.multitenancy.enabled: true
-opensearch_security.multitenancy.tenants.enable_global: false
-opensearch_security.multitenancy.tenants.enable_private: false
+opensearch_security.multitenancy.tenants.enable_global: true
+opensearch_security.multitenancy.tenants.enable_private: true
 opensearch_security.multitenancy.tenants.preferred: ["Private", "Global"]
-opensearch_security.multitenancy.enable_filter: false
+opensearch_security.multitenancy.enable_filter: true
 
 opensearch_security.auth.type: openid
 opensearch_security.openid.connect_url: https://172.17.0.1:8443/auth/realms/ICSConsole/.well-known/openid-configuration

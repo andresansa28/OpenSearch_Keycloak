@@ -125,5 +125,13 @@ def opensearch_first_setup(es, vm_hosts):
 
             #UPLOAD DASHBOARDS
             dashboard_management.upload_dashboards(es, tenant)
+
+            """            | Cosa            | Nome               | Associazione                           |
+            | --------------- | ------------------ | -------------------------------------- |
+            | 🔷 Tenant       | `prova`            | Nome deploy / gruppo Keycloak          |
+            | 🔷 Ruolo        | `prova_user`       | Accesso dati e dashboard               |
+            | 🔷 RolesMapping | `prova_user`       | Collegato a `backend_roles: ["prova"]` |
+            | 🔷 Dashboard    | nel tenant `prova` | via `upload_dashboards`                |
+            """
     
         
