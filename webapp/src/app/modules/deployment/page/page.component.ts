@@ -13,6 +13,7 @@ import {
   DeployModel,
 } from 'src/app/shared/deploymentModels/deploymentsModel';
 
+
 @Component({
   selector: 'app-deployment',
   templateUrl: './page.component.html',
@@ -69,7 +70,7 @@ export class DeploymentComponent implements OnInit, OnDestroy {
     private _snackBar: MatSnackBar,
     private analyzerS: AnalyzerService,
     private analyzerStatusService: AnalyzerStatusService,
-    private userService: UsermanagmentApiService
+    private userService: UsermanagmentApiService,
   ) { }
 
   // Aggiungi questi nel tuo DeploymentComponent
@@ -117,6 +118,7 @@ export class DeploymentComponent implements OnInit, OnDestroy {
 
     // Inizia il monitoraggio dello stato dell'analyzer
     this.analyzerStatusService.startMonitoring();
+    
 
     // Sottoscrivi agli aggiornamenti dello stato
     this.statusSubscription = this.analyzerStatusService.isRunning$.subscribe(
@@ -313,7 +315,7 @@ export class DeploymentComponent implements OnInit, OnDestroy {
 
   // Metodo per eliminare automaticamente il gruppo quando un deployment viene rimosso
   private deleteGroupForDeployment(deploymentName: string): void {
-    const groupName = `deployment-${deploymentName}`;
+    const groupName = `${deploymentName}`;
 
     this.userService.deleteGroup(groupName).subscribe({
       next: (response) => {
