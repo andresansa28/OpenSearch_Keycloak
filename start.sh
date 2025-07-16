@@ -50,9 +50,9 @@ if test ! -f "$FILE"; then
         fi
         sleep 1
     done
-    ./security_admin.sh
-    sleep 5
     ./upload_security.sh
+    sleep 5
+    ./security_admin.sh
     docker compose up -d dashboards
     docker compose up -d analyzer
     docker compose up -d backend

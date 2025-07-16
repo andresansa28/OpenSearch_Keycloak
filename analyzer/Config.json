@@ -5,32 +5,5 @@
   "delay": 40,
   "zeek_path": "/usr/local/zeek/bin/zeek",
   "greynoise_api_key": "5ae9wOgoA9SWXnrY7u1S09drGy509e4MOYnLP39YZ5Pqi3oADIiQMIiBtjfdTW88",
-  "RemoteDeployments": [
-    {
-      "name": "prova",
-      "IP": "1232131",
-      "user": "32132",
-      "passw": "323232",
-      "active": true,
-      "Containers": [
-        {
-          "IP": "3232",
-          "name": "3232"
-        }
-      ]
-    },
-    {
-      "name": "prova2",
-      "IP": "3343",
-      "user": "fdfd",
-      "passw": "dsdsd",
-      "active": true,
-      "Containers": [
-        {
-          "IP": "dsdsds",
-          "name": "dsds"
-        }
-      ]
-    }
-  ]
+  "RemoteDeployments": []
 }
