@@ -408,7 +408,7 @@
                 <mat-icon>edit</mat-icon>
                 Modifica
               </button>
-              <button mat-button color="warn" (click)="removeDeployment(deploy.IP); $event.stopPropagation()">
+              <button mat-button color="warn" (click)="removeDeployment(deploy.IP, deploy.name); $event.stopPropagation()">
                 <mat-icon>delete</mat-icon>
                 Rimuovi
               </button>

@@ -1,130 +1,3 @@
-// import {Component, OnInit} from '@angular/core';
-// import {UsermanagmentApiService} from "../../../services/usermanagment-api.service";
-// import {MessageService} from "primeng/api";
-// import {FormBuilder, FormControl, FormGroup} from "@angular/forms";
-
-// @Component({
-//   selector: 'app-page',
-//   templateUrl: './page.component.html',
-//   styleUrls: ['./page.component.scss'],
-//   providers: [MessageService]
-// })
-
-// export class PageComponent implements OnInit{
-//   myGroup!: FormGroup
-//   constructor(
-//     private service:UsermanagmentApiService,
-//     private messageService:MessageService,
-//     private fb: FormBuilder
-//   ) { }
-
-//   users! : any[]
-//   username!: string;
-//   firstname!: string;
-//   lastname!:string;
-//   email!: string;
-//   password!: string;
-//   productDialog: boolean = false;
-//   groups!: any[];
-//   checked: boolean = false;
-//   selectedValue: any;
-//   editingUser!: string;
-//   async ngOnInit(): Promise<void> {
-//     this.users = await this.getUsers()
-
-//   }
-
-
-//   async getUsers(): Promise<any>{
-//     this.service.getUsers().subscribe((data: any) => {this.users = data})
-//   }
-
-//   async deleteUser(userid:string){
-//     this.service.removeUser(userid).subscribe({
-//       next:(v) => {
-//         this.messageService.add({severity:'success', summary:'Success', detail:'User Deleted'})
-//         this.testA()
-//       },
-//       error:(e) => {this.messageService.add({severity:'error', summary:'Error', detail:e["error"]["message"]["errorMessage"]})},
-//       complete: () => console.info("complete")
-//       }
-//     )
-//   }
-//   async createUser(){
-//     this.service.createUser(
-//       this.username,
-//       this.firstname,
-//       this.lastname,
-//       this.email,
-//       this.password).subscribe(
-//       {
-//         next: (v) => {
-//           this.users.push(v)
-//           this.messageService.add({severity:'success', summary:'Success', detail:'User Created'})
-//         },
-//         error: (e) => {
-//           this.messageService.add({severity:'error', summary:'Error', detail:e["error"]["message"]["errorMessage"]})
-//         },
-//         complete: () => console.info('complete')
-//       }
-//     )
-//   }
-
-//   async testA(){
-//     this.service.getUsers().subscribe((data: any) => {this.users = data})
-//   }
-
-//   async editUser(user: any) {
-//     this.productDialog = true
-//     this.editingUser = user
-//     this.service.getUserRoles(user).subscribe(
-//       {
-//         next: (v:any) => {
-//           if (v.length > 0){
-//             this.selectedValue = v[0].name
-//           }
-//         },
-//         error: (e) => {
-//           this.messageService.add({severity:'error', summary:'Error', detail:e["error"]["message"]["errorMessage"]})
-//         },
-//         complete: () => console.info('complete')
-//       }
-//     )
-
-//     this.service.getAllGroups().subscribe(
-//       {
-//         next: (v:any) => {
-//           this.groups = v
-//         },
-//         error: (e) => {
-//           this.messageService.add({severity:'error', summary:'Error', detail:e["error"]["message"]["errorMessage"]})
-//         },
-//         complete: () => console.info('complete')
-//       }
-//     )
-//   }
-
-
-
-//   changeValue() {
-//     this.service.setUserGroup(this.editingUser,this.selectedValue).subscribe(
-//       {
-//         next: (v:any) => {},
-//         error: (e) => {
-//           this.messageService.add({severity:'error', summary:'Error', detail:e["error"]["message"]["errorMessage"]})
-//         },
-//         complete: () => {
-//           this.productDialog = false
-//           this.selectedValue = ""
-//         }
-//       }
-//     )
-//   }
-
-
-// }
-
-
 import { Component, OnInit, TemplateRef, ViewChild } from '@angular/core';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { MatDialog } from '@angular/material/dialog';
@@ -185,61 +58,67 @@ export class PageComponent implements OnInit {
   manageGroups(userId: any): void {
     console.log('Gestione gruppi per utente:', userId, 'tipo:', typeof userId);
     this.currentUserId = userId;
+    this.selectedGroups = [];
     this.loadUserGroups();
     this.dialog.open(this.groupDialog, {
-      width: '500px',
+      width: '600px',
       disableClose: false
     });
   }
 
-  assignGroup(): void {
-    if (this.currentUserId && this.selectedGroup) {
-      console.log('Assegnazione gruppo:', {
-        userId: this.currentUserId,
-        selectedGroup: this.selectedGroup,
-        userIdType: typeof this.currentUserId,
-        selectedGroupType: typeof this.selectedGroup
-      });
+  assignSelectedGroups(): void {
+    if (this.currentUserId && this.selectedGroups.length > 0) {
+      const assignments = this.selectedGroups.map(group =>
+        this.service.setUserGroup(this.currentUserId!.toString(), group.name).toPromise()
+      );
 
-      this.service.setUserGroup(this.currentUserId.toString(), this.selectedGroup.toString()).subscribe({
-        next: (response) => {
-          console.log('Gruppo assegnato con successo:', response);
-          this.snackBar.open('Gruppo assegnato con successo!', 'Chiudi', {
+      // Esegui tutte le assegnazioni in parallelo
+      Promise.all(assignments).then(
+        responses => {
+          console.log('Tutti i gruppi assegnati con successo:', responses);
+          this.snackBar.open(`${this.selectedGroups.length} gruppi assegnati con successo!`, 'Chiudi', {
             duration: 3000,
             panelClass: ['success-snackbar']
           });
           this.dialog.closeAll();
-          this.selectedGroup = null;
-          this.currentUserId = null;
-        },
-        error: (error) => {
-          console.error('Errore completo nell\'assegnazione gruppo:', error);
-          console.error('Error message:', error.error?.message || error.message);
-          console.error('Error status:', error.status);
-
-          let errorMessage = 'Errore nell\'assegnazione del gruppo';
-          if (error.error?.message?.errorMessage) {
-            errorMessage = error.error.message.errorMessage;
-          } else if (error.error?.message) {
-            errorMessage = error.error.message;
-          } else if (error.message) {
-            errorMessage = error.message;
-          }
-
-          this.snackBar.open(errorMessage, 'Chiudi', {
+          this.selectedGroups = [];
+          this.loadUserGroups(); // Ricarica i gruppi dell'utente
+        }
+      ).catch(
+        error => {
+          console.error('Errore nell\'assegnazione di alcuni gruppi:', error);
+          this.snackBar.open('Errore nell\'assegnazione di alcuni gruppi', 'Chiudi', {
             duration: 5000,
             panelClass: ['error-snackbar']
           });
         }
-      });
+      );
     } else {
-      console.error('Dati mancanti per assegnazione gruppo:', {
-        currentUserId: this.currentUserId,
-        selectedGroup: this.selectedGroup
-      });
-      this.snackBar.open('Seleziona un utente e un gruppo', 'Chiudi', {
+      this.snackBar.open('Seleziona almeno un gruppo da assegnare', 'Chiudi', {
         duration: 3000,
         panelClass: ['error-snackbar']
+      });
+    }
+  }
+
+  removeUserFromGroup(group: Group): void {
+    if (this.currentUserId && group) {
+      this.service.removeUserFromGroup(this.currentUserId.toString(), group.name).subscribe({
+        next: (response) => {
+          console.log('Utente rimosso dal gruppo con successo:', response);
+          this.snackBar.open(`Rimosso dal gruppo '${group.name}'`, 'Chiudi', {
+            duration: 3000,
+            panelClass: ['success-snackbar']
+          });
+          this.loadUserGroups(); // Ricarica i gruppi dell'utente
+        },
+        error: (error) => {
+          console.error('Errore nella rimozione dal gruppo:', error);
+          this.snackBar.open('Errore nella rimozione dal gruppo', 'Chiudi', {
+            duration: 5000,
+            panelClass: ['error-snackbar']
+          });
+        }
       });
     }
   }
@@ -259,7 +138,9 @@ export class PageComponent implements OnInit {
   hidePassword = true;
 
   // Dialog properties
-  selectedGroup: number | null = null;
+  selectedGroups: Group[] = [];
+  userCurrentGroups: Group[] = [];
+  availableGroups: Group[] = [];
   currentUserId: number | null = null;
   groups: Group[] = [];
 
@@ -285,9 +166,9 @@ export class PageComponent implements OnInit {
   private createUserForm(): FormGroup {
     return this.fb.group({
       username: ['', [Validators.required, Validators.minLength(3)]],
-      email: ['', [Validators.required, Validators.email]],
-      firstName: ['', [Validators.required]],
-      lastName: ['', [Validators.required]],
+      email: ['', [Validators.nullValidator, Validators.email]],
+      firstName: ['', [Validators.nullValidator]],
+      lastName: ['', [Validators.nullValidator]],
       password: ['', [Validators.required, Validators.minLength(4)]]
     });
   }
@@ -353,12 +234,33 @@ export class PageComponent implements OnInit {
     if (this.currentUserId) {
       this.service.getUserRoles(this.currentUserId.toString()).subscribe({
         next: (userGroups: any) => {
-          if (userGroups && userGroups.length > 0) {
-            this.selectedGroup = userGroups[0].id || userGroups[0].name;
+          console.log('Gruppi utente caricati:', userGroups);
+
+          // Converti i gruppi dell'utente nel formato corretto
+          if (userGroups && Array.isArray(userGroups)) {
+            this.userCurrentGroups = userGroups.map((ug: any) => ({
+              id: ug.id || ug.name,
+              name: ug.name,
+              description: ug.description || '',
+              permissions: []
+            }));
+          } else {
+            this.userCurrentGroups = [];
           }
+
+          // Calcola i gruppi disponibili (tutti i gruppi meno quelli già assegnati)
+          const currentGroupNames = this.userCurrentGroups.map(g => g.name);
+          this.availableGroups = this.groups.filter(group =>
+            !currentGroupNames.includes(group.name)
+          );
+
+          console.log('Gruppi attuali:', this.userCurrentGroups);
+          console.log('Gruppi disponibili:', this.availableGroups);
         },
         error: (error) => {
           console.error('Errore nel caricamento gruppi utente:', error);
+          this.userCurrentGroups = [];
+          this.availableGroups = [...this.groups];
         }
       });
     }
@@ -392,6 +294,13 @@ export class PageComponent implements OnInit {
     this.isEditMode = false;
     this.editingUserId = null;
     this.hidePassword = true;
+
+    // Re-enable username field when exiting edit mode
+    this.userForm.get('username')?.enable();
+
+    // Re-add password validation when creating new user
+    this.userForm.get('password')?.setValidators([Validators.required, Validators.minLength(4)]);
+    this.userForm.get('password')?.updateValueAndValidity();
   }
 
   // CRUD Operations
@@ -433,6 +342,9 @@ export class PageComponent implements OnInit {
       this.userForm.get('password')?.clearValidators();
       this.userForm.get('password')?.updateValueAndValidity();
 
+      // Disable username field in edit mode (Keycloak doesn't allow username changes)
+      this.userForm.get('username')?.disable();
+
       this.userForm.patchValue({
         username: user.username,
         email: user.email,
@@ -444,26 +356,56 @@ export class PageComponent implements OnInit {
       document.querySelector('.form-section')?.scrollIntoView({ behavior: 'smooth' });
     }
   }
+
+
   updateUser(userId: number, userData: Partial<User>): void {
-    // Per ora implementiamo una logica di aggiornamento locale
-    // In futuro si potrà aggiungere un endpoint API per l'aggiornamento
-    const userIndex = this.users.findIndex(u => u.id === userId);
-    if (userIndex !== -1) {
-      this.users[userIndex] = {
-        ...this.users[userIndex],
-        username: userData.username!,
-        email: userData.email!,
-        firstName: userData.firstName!,
-        lastName: userData.lastName!,
-        updatedAt: new Date()
-      };
-      this.filteredUsers.data = [...this.users];
-      this.resetForm();
-      this.snackBar.open('Utente aggiornato con successo!', 'Chiudi', {
-        duration: 3000,
-        panelClass: ['success-snackbar']
-      });
-    }
+    const updatedUser = {
+      id: userId,
+      username: userData.username || '',
+      firstName: userData.firstName || '',
+      lastName: userData.lastName || '',
+      email: userData.email || '',
+      enabled: true,
+      emailVerified: false,
+      attributes: {},
+
+      // Campi aggiuntivi obbligatori
+      createdTimestamp: Date.now(),
+      totp: false,
+      disableableCredentialTypes: [],
+      requiredActions: [],
+      notBefore: 0,
+    };
+
+
+    console.log("Payload che sto inviando:", updatedUser);
+    this.service.updateUser(updatedUser).subscribe({
+      next: () => {
+        const userIndex = this.users.findIndex(u => u.id === userId);
+        if (userIndex !== -1) {
+          this.users[userIndex] = {
+            ...this.users[userIndex],
+            ...userData,
+            updatedAt: new Date()
+          };
+          this.filteredUsers.data = [...this.users];
+        }
+        this.resetForm();
+        this.snackBar.open('Utente aggiornato con successo!', 'Chiudi', {
+          duration: 3000,
+          panelClass: ['success-snackbar']
+        });
+      },
+      error: (err) => {
+        console.error('Errore durante l\'aggiornamento:', err);
+        this.snackBar.open('Errore durante l\'aggiornamento utente.', 'Chiudi', {
+          duration: 3000,
+          panelClass: ['error-snackbar']
+        });
+      }
+    });
   }
+
+
 
 }

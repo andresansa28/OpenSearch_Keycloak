@@ -23,11 +23,18 @@ export class HomeComponent implements OnInit {
   constructor(
     private _router: Router,
     private keycloakService: AuthService,
+    private keycloaskS: KeycloakService
   ) {
   }
 
   async ngOnInit() {
-
+  try {
+    const token = await this.keycloaskS.getToken();  // ← parentesi () e await
+    console.log('Access Token:', token);
+  } catch (error) {
+    console.error('Errore nel recupero del token:', error);
   }
+}
+
 
 }

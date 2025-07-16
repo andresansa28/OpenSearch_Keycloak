@@ -1,13 +1,14 @@
 import json
 import os
 import sys
+import requests
 from typing import Annotated
 
 import uvicorn
 from fastapi import FastAPI, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import OAuth2PasswordBearer
-from fastapi_keycloak import FastAPIKeycloak, KeycloakError, OIDCUser
+from fastapi_keycloak import FastAPIKeycloak, KeycloakError, OIDCUser, KeycloakUser
 from opensearchpy import OpenSearch, helpers
 from pydantic import BaseModel
 from starlette.requests import Request
@@ -62,7 +63,10 @@ idp.add_swagger_config(app)
 
 origins = [
     "http://localhost",
+    "http://localhost:4200",
+    "http://localhost:5000",
     "http://localhost:5002",
+    "http://172.17.0.1:5000",
     "http://172.17.0.1:5002",
     "http://172.17.0.1:4200"
 ]
@@ -74,6 +78,18 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Aggiungiamo un handler per le richieste OPTIONS
+@app.options("/{path:path}")
+async def options_handler(request: Request):
+    return JSONResponse(
+        status_code=200,
+        headers={
+            "Access-Control-Allow-Origin": "*",
+            "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
+            "Access-Control-Allow-Headers": "*",
+        }
+    )
 
 
 @app.get("/")
@@ -98,16 +114,92 @@ class UserGroup(BaseModel):
     group_name: str
 
 
+class GroupCreate(BaseModel):
+    name: str
+    description: str = ""
+
+
 @app.get("/users", tags=["user-management"])
 def get_users(user: OIDCUser = Depends(idp.get_current_user(required_roles=["admin"]))):
     with sslpatch.no_ssl_verification():
         return idp.get_all_users()
+    
+@app.put("/user/update/", tags=["user-management"])
+def update_user(user: KeycloakUser, current_user: OIDCUser = Depends(idp.get_current_user(required_roles=["admin"]))):
+    with sslpatch.no_ssl_verification():
+        return idp.update_user(user)
 
 
 @app.get("/groups", tags=["user-groups"])
 def get_groups():
     with sslpatch.no_ssl_verification():
         return idp.get_all_groups()
+
+
+@app.post("/group/create/", tags=["user-groups"])
+def create_group(item: GroupCreate):
+    try:
+        with sslpatch.no_ssl_verification():
+            # Verifica se il gruppo esiste già
+            existing_groups = idp.get_groups([item.name])
+            if existing_groups:
+                return {
+                    "message": "Gruppo esiste già",
+                    "group_name": item.name,
+                    "status": "exists"
+                }
+            
+            # Usa l'API diretta di Keycloak
+            import requests
+            
+            # Ottieni il token admin
+            token_url = "https://172.17.0.1:8443/auth/realms/master/protocol/openid-connect/token"
+            token_data = {
+                "username": "admin",
+                "password": "password",  # Credenziali corrette dal file .env
+                "grant_type": "password",
+                "client_id": "admin-cli"
+            }
+            
+            token_response = requests.post(token_url, data=token_data, verify=False)
+            if token_response.status_code != 200:
+                raise Exception(f"Errore nell'ottenere il token admin: {token_response.text}")
+            
+            admin_token = token_response.json()["access_token"]
+            
+            # Crea il gruppo
+            groups_url = "https://172.17.0.1:8443/auth/admin/realms/ICSConsole/groups"
+            group_data = {
+                "name": item.name,
+                "attributes": {
+                    "description": [item.description]
+                }
+            }
+            
+            headers = {
+                "Authorization": f"Bearer {admin_token}",
+                "Content-Type": "application/json"
+            }
+            
+            create_response = requests.post(groups_url, json=group_data, headers=headers, verify=False)
+            
+            if create_response.status_code == 201:
+                return {
+                    "message": "Gruppo creato con successo",
+                    "group_name": item.name,
+                    "status": "created"
+                }
+            else:
+                raise Exception(f"Errore nella creazione del gruppo: {create_response.status_code} - {create_response.text}")
+            
+    except Exception as e:
+        import traceback
+        error_details = traceback.format_exc()
+        print(f"Errore dettagliato: {error_details}")
+        return JSONResponse(
+            status_code=400,
+            content={"message": {"errorMessage": f"Errore nella creazione del gruppo: {str(e)}"}}
+        )
 
 
 @app.get("/user/group/", tags=["user-groups"])
@@ -117,10 +209,47 @@ def get_user_group(user_id: str):
 
 
 @app.post("/user/group/add/", tags=["user-groups"])
-def add_group_to_user(item: UserGroup):
-    with sslpatch.no_ssl_verification():
-        group_id = idp.get_groups([item.group_name])[0].id
-        return idp.add_user_group(user_id=item.user_id, group_id=group_id)
+def add_group_to_user(item: UserGroup, user: OIDCUser = Depends(idp.get_current_user(required_roles=["admin"]))):
+    try:
+        with sslpatch.no_ssl_verification():
+            groups = idp.get_groups([item.group_name])
+            if not groups:
+                return JSONResponse(
+                    status_code=400,
+                    content={"message": {"errorMessage": f"Gruppo '{item.group_name}' non trovato"}}
+                )
+            group_id = groups[0].id
+            result = idp.add_user_group(user_id=item.user_id, group_id=group_id)
+            return result
+    except Exception as e:
+        return JSONResponse(
+            status_code=400,
+            content={"message": {"errorMessage": f"Errore nell'assegnazione del gruppo: {str(e)}"}}
+        )
+
+
+@app.post("/user/group/remove/", tags=["user-groups"])
+def remove_user_from_group(item: UserGroup, user: OIDCUser = Depends(idp.get_current_user(required_roles=["admin"]))):
+    try:
+        with sslpatch.no_ssl_verification():
+            groups = idp.get_groups([item.group_name])
+            if not groups:
+                return JSONResponse(
+                    status_code=400,
+                    content={"message": {"errorMessage": f"Gruppo '{item.group_name}' non trovato"}}
+                )
+            group_id = groups[0].id
+            result = idp.remove_user_group(user_id=item.user_id, group_id=group_id)
+            return {
+                "message": "Utente rimosso dal gruppo con successo",
+                "user_id": item.user_id,
+                "group_name": item.group_name
+            }
+    except Exception as e:
+        return JSONResponse(
+            status_code=400,
+            content={"message": {"errorMessage": f"Errore nella rimozione dell'utente dal gruppo: {str(e)}"}}
+        )
 
 
 @app.post("/user/create/", tags=["user-management"])
@@ -130,10 +259,79 @@ def create_user(item: User, user: OIDCUser = Depends(idp.get_current_user(requir
                                email=item.email, password=item.password, send_email_verification=False)
 
 
+
+
+
+
 @app.delete("/user/delete/", tags=["user-management"])
 def delete_user(user_id: str, user: OIDCUser = Depends(idp.get_current_user(required_roles=["admin"]))):
     with sslpatch.no_ssl_verification():
         return idp.delete_user(user_id=user_id)
+
+@app.put("/user/update", tags=["user-management"])
+def update_user(self, user: KeycloakUser):
+    response = self._admin_request(url=f'{self.users_uri}/{user.id}', data=user.__dict__, method=HTTPMethod.PUT)
+    if response.status_code == 204:  # Update successful
+        return self.get_user(user_id=user.id)
+    return response
+
+@app.delete("/group/delete/", tags=["user-groups"])
+def delete_group(group_name: str):
+    try:
+        with sslpatch.no_ssl_verification():
+            # Verifica se il gruppo esiste
+            existing_groups = idp.get_groups([group_name])
+            if not existing_groups:
+                return {
+                    "message": "Gruppo non trovato",
+                    "group_name": group_name,
+                    "status": "not_found"
+                }
+            
+            # Usa l'API diretta di Keycloak per eliminare il gruppo
+            # Ottieni il token admin dal realm master
+            token_url = "https://172.17.0.1:8443/auth/realms/master/protocol/openid-connect/token"
+            token_data = {
+                "username": "admin",
+                "password": "password",
+                "grant_type": "password",
+                "client_id": "admin-cli"
+            }
+            
+            token_response = requests.post(token_url, data=token_data, verify=False)
+            if token_response.status_code != 200:
+                raise Exception(f"Errore nell'ottenere il token admin: {token_response.text}")
+            
+            admin_token = token_response.json()["access_token"]
+            
+            # Elimina il gruppo usando il suo ID, nel realm ICSConsole
+            group_id = existing_groups[0].id
+            delete_url = f"https://172.17.0.1:8443/auth/admin/realms/ICSConsole/groups/{group_id}"
+            
+            headers = {
+                "Authorization": f"Bearer {admin_token}",
+                "Content-Type": "application/json"
+            }
+            
+            delete_response = requests.delete(delete_url, headers=headers, verify=False)
+            
+            if delete_response.status_code == 204:
+                return {
+                    "message": "Gruppo eliminato con successo",
+                    "group_name": group_name,
+                    "status": "deleted"
+                }
+            else:
+                raise Exception(f"Errore nell'eliminazione del gruppo: {delete_response.status_code} - {delete_response.text}")
+            
+    except Exception as e:
+        import traceback
+        error_details = traceback.format_exc()
+        print(f"Errore dettagliato: {error_details}")
+        return JSONResponse(
+            status_code=400,
+            content={"message": {"errorMessage": f"Errore nell'eliminazione del gruppo: {str(e)}"}}
+        )
 
 
 @app.exception_handler(KeycloakError)

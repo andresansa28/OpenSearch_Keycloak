@@ -6,11 +6,13 @@ import { Subscription } from 'rxjs';
 import { AnalyzerStatusService } from 'src/app/services/analyzer-status.service';
 import { AnalyzerService } from 'src/app/services/analyzer.service';
 import { ConfigService } from 'src/app/services/config.service';
+import { UsermanagmentApiService } from 'src/app/services/usermanagment-api.service';
 import {
   Container,
   DeploymentsModel,
   DeployModel,
 } from 'src/app/shared/deploymentModels/deploymentsModel';
+
 
 @Component({
   selector: 'app-deployment',
@@ -67,7 +69,8 @@ export class DeploymentComponent implements OnInit, OnDestroy {
     private configS: ConfigService,
     private _snackBar: MatSnackBar,
     private analyzerS: AnalyzerService,
-    private analyzerStatusService: AnalyzerStatusService
+    private analyzerStatusService: AnalyzerStatusService,
+    private userService: UsermanagmentApiService,
   ) { }
 
   // Aggiungi questi nel tuo DeploymentComponent
@@ -115,6 +118,7 @@ export class DeploymentComponent implements OnInit, OnDestroy {
 
     // Inizia il monitoraggio dello stato dell'analyzer
     this.analyzerStatusService.startMonitoring();
+    
 
     // Sottoscrivi agli aggiornamenti dello stato
     this.statusSubscription = this.analyzerStatusService.isRunning$.subscribe(
@@ -161,6 +165,7 @@ export class DeploymentComponent implements OnInit, OnDestroy {
       error: (error: any) => {
         this._snackBar.open('Errore nel caricamento dei dati!', 'Chiudi', {
           duration: 2000, // Durata in millisecondi
+          panelClass: ['error-snackbar']
         });
       }
     });
@@ -173,18 +178,21 @@ export class DeploymentComponent implements OnInit, OnDestroy {
       next: (res: any) => {
         if (res['message'] == 'Delay changed successfully') {
           this._snackBar.open('Delay aggiornato con successo!', 'Chiudi', {
-            duration: 3000
+            duration: 3000,
+            panelClass: ['success-snackbar']
           });
           this.initDeployments();
         } else {
           this._snackBar.open('Errore nell\'aggiornamento del delay!', 'Chiudi', {
-            duration: 5000
+            duration: 5000,
+            panelClass: ['error-snackbar']
           });
         }
       },
       error: (error: any) => {
         this._snackBar.open('Errore nell\'aggiornamento del delay!', 'Chiudi', {
-          duration: 5000
+          duration: 5000,
+          panelClass: ['error-snackbar']
         });
       }
     });
@@ -196,18 +204,21 @@ export class DeploymentComponent implements OnInit, OnDestroy {
         console.log(res);
         if (res['message'] == 'MaxMind_GeoDB_Key changed successfully') {
           this._snackBar.open('Chiave MaxMind aggiornata con successo!', 'Chiudi', {
-            duration: 3000
+            duration: 3000,
+            panelClass: ['success-snackbar']
           });
           this.initDeployments();
         } else {
           this._snackBar.open('Errore nell\'aggiornamento della chiave MaxMind!', 'Chiudi', {
-            duration: 5000
+            duration: 5000,
+            panelClass: ['error-snackbar']
           });
         }
       },
       error: (error: any) => {
         this._snackBar.open('Errore nell\'aggiornamento della chiave MaxMind!', 'Chiudi', {
-          duration: 5000
+          duration: 5000,
+          panelClass: ['error-snackbar']
         });
       }
     });
@@ -232,11 +243,13 @@ export class DeploymentComponent implements OnInit, OnDestroy {
 
     this.configS.addDeployment(deploy).subscribe({
       next: (res: any) => {
+        console.log('Deployment aggiunto:', res);
+
+        // Dopo aver aggiunto il deployment, crea il gruppo in Keycloak
+        this.createGroupForDeployment(deploy.name);
+
         // Ricarica la lista dei deployment
         this.initDeployments();
-        this._snackBar.open('Deployment aggiunto con successo!', 'Chiudi', {
-          duration: 5000
-        });
 
         // Pulisci i campi input
         this.clearForm();
@@ -250,7 +263,8 @@ export class DeploymentComponent implements OnInit, OnDestroy {
       },
       error: (err: any) => {
         this._snackBar.open("Errore durante l'aggiunta!", 'Chiudi', {
-          duration: 5000
+          duration: 5000,
+          panelClass: ['error-snackbar']
         });
         this.isLoadingDeploy = false;
         console.error('Errore:', err);
@@ -258,20 +272,104 @@ export class DeploymentComponent implements OnInit, OnDestroy {
     });
   }
 
-  removeDeployment(ipToRemove: string): void {
+  // Metodo per creare automaticamente un gruppo per il deployment
+  private createGroupForDeployment(deploymentName: string): void {
+    const groupName = `${deploymentName}`;
+    const description = `Gruppo automatico per il deployment ${deploymentName}`;
+
+    // Prima mostra notifica del deployment creato
+    this._snackBar.open(`Deployment '${deploymentName}' aggiunto con successo!`, 'Chiudi', {
+      duration: 4000,
+      panelClass: ['success-snackbar']
+    });
+
+    // Dopo 2 secondi, crea il gruppo e mostra la notifica del gruppo
+    setTimeout(() => {
+      this.userService.createGroup(groupName, description).subscribe({
+        next: (response) => {
+          console.log('Gruppo creato con successo:', response);
+          this._snackBar.open(`Gruppo '${groupName}' creato automaticamente!`, 'Chiudi', {
+            duration: 4000,
+            panelClass: ['info-snackbar']
+          });
+        },
+        error: (error) => {
+          console.error('Errore nella creazione del gruppo:', error);
+          // Non mostrare errore all'utente se il gruppo esiste già
+          if (error.error?.message?.errorMessage?.includes('esiste già')) {
+            console.log('Gruppo già esistente, continuando...');
+            this._snackBar.open(`ℹGruppo '${groupName}' già esistente`, 'Chiudi', {
+              duration: 3000,
+              panelClass: ['info-snackbar']
+            });
+          } else {
+            this._snackBar.open('Attenzione: errore nella creazione automatica del gruppo', 'Chiudi', {
+              duration: 3000,
+              panelClass: ['error-snackbar']
+            });
+          }
+        }
+      });
+    }, 2000);
+  }
+
+  // Metodo per eliminare automaticamente il gruppo quando un deployment viene rimosso
+  private deleteGroupForDeployment(deploymentName: string): void {
+    const groupName = `${deploymentName}`;
+
+    this.userService.deleteGroup(groupName).subscribe({
+      next: (response) => {
+        console.log('Gruppo eliminato con successo:', response);
+        this._snackBar.open(`Gruppo '${groupName}' eliminato automaticamente!`, 'Chiudi', {
+          duration: 4000,
+          panelClass: ['success-snackbar']
+        });
+      },
+      error: (error) => {
+        console.error('Errore nell\'eliminazione del gruppo:', error);
+        // Non mostrare errore all'utente se il gruppo non esiste
+        if (error.error?.message?.errorMessage?.includes('non trovato')) {
+          console.log('Gruppo non esistente, continuando...');
+          this._snackBar.open(`Gruppo '${groupName}' non esistente`, 'Chiudi', {
+            duration: 3000,
+            panelClass: ['info-snackbar']
+          });
+        } else {
+          this._snackBar.open('Attenzione: errore nell\'eliminazione automatica del gruppo', 'Chiudi', {
+            duration: 3000,
+            panelClass: ['error-snackbar']
+          });
+        }
+      }
+    });
+  }
+
+  removeDeployment(ipToRemove: string, deploymentName?: string): void {
     this.configS.removeDeployment(ipToRemove).subscribe((res: any) => {
       console.log(res);
       if (res['message'] == 'Deployments removed successfully') {
-        this._snackBar.open('Deployment rimosso con successo!', 'Chiudi', {
-          duration: 2000,
+        // Prima mostra notifica del deployment rimosso
+        this._snackBar.open(`Deployment '${deploymentName || ipToRemove}' rimosso con successo!`, 'Chiudi', {
+          duration: 4000,
+          panelClass: ['success-snackbar']
         });
+
+        // Elimina anche il gruppo associato se abbiamo il nome del deployment
+        if (deploymentName) {
+          // Dopo 2 secondi, elimina il gruppo e mostra la notifica del gruppo
+          setTimeout(() => {
+            this.deleteGroupForDeployment(deploymentName);
+          }, 2000);
+        }
+
         this.initDeployments();
       } else {
         this._snackBar.open(
           'Errore nella rimozione del deployment!',
           'Chiudi',
           {
-            duration: 5000 // Durata in millisecondi
+            duration: 5000,
+            panelClass: ['error-snackbar'] // Durata in millisecondi
           }
         );
       }
@@ -286,6 +384,7 @@ export class DeploymentComponent implements OnInit, OnDestroy {
         console.log(res);
         this._snackBar.open('Analyzer avviato con successo!', 'Chiudi', {
           duration: 3000,
+          panelClass: ['success-snackbar']
         });
         // Aggiorna lo stato immediatamente
         this.analyzerStatusService.refreshStatus();
@@ -293,6 +392,7 @@ export class DeploymentComponent implements OnInit, OnDestroy {
       error: () => {
         this._snackBar.open("Errore nell'avvio dell'analyzer", 'Chiudi', {
           duration: 5000,
+          panelClass: ['error-snackbar']
         });
         this.isLoadingStart = false;
         this.analyzerStatusService.refreshStatus();
@@ -327,6 +427,7 @@ export class DeploymentComponent implements OnInit, OnDestroy {
             'Chiudi',
             {
               duration: 5000,
+              panelClass: ['success-snackbar']
             }
           );
         }
@@ -337,6 +438,7 @@ export class DeploymentComponent implements OnInit, OnDestroy {
           'Chiudi',
           {
             duration: 5000,
+            panelClass: ['error-snackbar']
           }
         );
         this.isLoadingSetup = false;
@@ -378,7 +480,8 @@ export class DeploymentComponent implements OnInit, OnDestroy {
       };
 
       this._snackBar.open('PLC aggiornato con successo!', 'Chiudi', {
-        duration: 2000
+        duration: 2000,
+        panelClass: ['success-snackbar']
       });
 
       // Pulisce i campi senza mostrare messaggio di annullamento
@@ -390,7 +493,8 @@ export class DeploymentComponent implements OnInit, OnDestroy {
     this.clearPlcEditFields();
 
     this._snackBar.open('Modifica PLC annullata', 'Chiudi', {
-      duration: 2000
+      duration: 2000,
+      panelClass: ['info-snackbar']
     });
   }
 
@@ -416,7 +520,8 @@ export class DeploymentComponent implements OnInit, OnDestroy {
     const existingPlc = this.Containers_input.find(container => container.IP === this.add_container_ip_input);
     if (existingPlc) {
       this._snackBar.open('Un PLC con questo IP è già presente!', 'Chiudi', {
-        duration: 3000
+        duration: 3000,
+        panelClass: ['info-snackbar']
       });
       return;
     }
@@ -432,7 +537,8 @@ export class DeploymentComponent implements OnInit, OnDestroy {
     this.add_container_ip_input = '';
 
     this._snackBar.open('PLC aggiunto con successo!', 'Chiudi', {
-      duration: 2000
+      duration: 2000,
+      panelClass: ['success-snackbar']
     });
   }
 
@@ -449,6 +555,7 @@ export class DeploymentComponent implements OnInit, OnDestroy {
       error: (error: any) => {
         this._snackBar.open('Errore nel controllo stato deployment!', 'Chiudi', {
           duration: 2000,
+          panelClass: ['error-snackbar']
         });
       }
     });
@@ -495,7 +602,8 @@ export class DeploymentComponent implements OnInit, OnDestroy {
     this.scrollToForm();
 
     this._snackBar.open('Modalità modifica attivata', 'Chiudi', {
-      duration: 2000
+      duration: 2000,
+      panelClass: ['success-snackbar']
     });
   }
 
@@ -518,7 +626,8 @@ export class DeploymentComponent implements OnInit, OnDestroy {
     }
 
     this._snackBar.open('Modifica annullata', 'Chiudi', {
-      duration: 2000
+      duration: 2000,
+      panelClass: ['info-snackbar']
     });
   }
 
@@ -552,7 +661,8 @@ export class DeploymentComponent implements OnInit, OnDestroy {
               // Ricarica la lista dei deployment
               this.initDeployments();
               this._snackBar.open('Deployment aggiornato con successo!', 'Chiudi', {
-                duration: 3000
+                duration: 3000,
+                panelClass: ['success-snackbar']
               });
 
               // Esci dalla modalità di modifica e pulisci i campi
@@ -570,7 +680,8 @@ export class DeploymentComponent implements OnInit, OnDestroy {
             },
             error: (addErr: any) => {
               this._snackBar.open("Errore durante l'aggiornamento del deployment!", 'Chiudi', {
-                duration: 5000
+                duration: 5000,
+                panelClass: ['error-snackbar']
               });
               this.isLoadingDeploy = false;
               console.error('Errore aggiunta:', addErr);
@@ -578,14 +689,16 @@ export class DeploymentComponent implements OnInit, OnDestroy {
           });
         } else {
           this._snackBar.open('Errore nella rimozione del deployment originale!', 'Chiudi', {
-            duration: 5000
+            duration: 5000,
+            panelClass: ['error-snackbar']
           });
           this.isLoadingDeploy = false;
         }
       },
       error: (removeErr: any) => {
         this._snackBar.open('Errore nella rimozione del deployment originale!', 'Chiudi', {
-          duration: 5000
+          duration: 5000,
+          panelClass: ['error-snackbar']
         });
         this.isLoadingDeploy = false;
         console.error('Errore rimozione:', removeErr);
@@ -638,6 +751,7 @@ export class DeploymentComponent implements OnInit, OnDestroy {
             const statusText = targetDeployment.online ? 'online' : 'offline';
             this._snackBar.open(`Vm del Deployment ${targetDeployment.name} è ${statusText}`, 'Chiudi', {
               duration: 3000,
+              panelClass: ['info-snackbar']
             });
           }
         }
@@ -645,6 +759,7 @@ export class DeploymentComponent implements OnInit, OnDestroy {
       error: (error: any) => {
         this._snackBar.open('Errore nel controllo stato deployment!', 'Chiudi', {
           duration: 2000,
+          panelClass: ['error-snackbar']
         });
       },
       complete: () => {
