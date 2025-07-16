@@ -136,22 +136,30 @@ def create_sh(container_list):
 def get_pcap(scheduler):
     global running
     if not running:
-        logging.info("Scheduler interrotto")
+        logging.info("Scheduler interrotto, uscita dal ciclo get_pcap")
         return
     try:
         deployments = get_remote_deployments()
-        if not deployments:
-            logging.info("Nessun deploy configurato")
+        if len(deployments) == 0:
+            logging.info("Non ci sono deploy nella lista")
             running = False
             return
-
-        for vm in deployments:
+        # Avvia la logica principale
+        for vm in get_remote_deployments():
+            # Test della connessione TCP prima di procedere
             if not test_host_connectivity(vm):
-                running = False
+                logging.error(f"Host {vm['IP']} non raggiungibile, interruzione dell'operazione")
+                running = False  # Interrompe tutto
                 return
-
-            remote_host = ssh_management.Host(vm["IP"], vm["user"], vm["passw"])
+            
+            remote_host = ssh_management.Host(
+                host_ip=vm["IP"],
+                username=vm["user"],
+                password=vm["passw"]
+            )
+            
             result = remote_host.run_command("ls").stdout.split()
+            logging.info("Avvio get_pcap prova prova...")
             if "capture.sh" not in result:
                 create_sh(vm["Containers"])
                 remote_host.put_script("capture.sh", "capture.sh")
@@ -159,23 +167,127 @@ def get_pcap(scheduler):
                 remote_host.run_command("sudo chmod +x capture.sh")
                 os.remove("capture.sh")
 
-            os.makedirs(pcapPath + vm["name"], exist_ok=True)
-            result = remote_host.run_command("ls captures").stdout.split()
-            remote_host.run_command("sudo pkill -F tcpdump.pid")
-            remote_host.run_command("sudo rm tcpdump.pid")
-            for pcap in result:
-                remote_host.get_pcap(f'captures/{pcap}', pcapPath + vm["name"] + "/")
-                remote_host.run_command(f"sudo rm captures/{pcap}")
-            remote_host.run_command("sudo ./capture.sh")
+            if os.path.exists(pcapPath + vm["name"]):
+                result = remote_host.run_command("ls captures").stdout.split()
+                remote_host.run_command("sudo pkill -F tcpdump.pid")
+                remote_host.run_command("sudo rm tcpdump.pid")
+                for pcap in result:
+                    remote_host.get_pcap('captures/' + pcap, pcapPath + vm["name"] + "/")
+                    remote_host.run_command("sudo rm captures/" + pcap)
+                    print(str(pcap)+" eliminato",True)
+                remote_host.run_command("sudo ./capture.sh")
+                logging.info("Metodo per la cattura dei pacchetti sulla vm remota avviato")
+            else:
+                os.makedirs(pcapPath + vm["name"])
 
         run_zeek()
-        logging.info("Pull completato")
+        logging.info("Pull Complete")
 
+        # Riprogramma solo se tutto è andato bene
         if running:
-            scheduler.enter(delay, 1, get_pcap, (scheduler,))
+            event = scheduler.enter(delay, 1, get_pcap, (scheduler,))
+            logging.info("Scheduler riprogrammato con successo")
+
     except Exception as e:
-        logging.error(f"Errore in get_pcap: {e}")
-        running = False
+        logging.error(f"Errore durante l'esecuzione di get_pcap: {e}")
+        running = False  # FERMA il ciclo
+
+
+def run_zeek(standard=True):
+    logging.info("Inizio metodo run_zeek")
+    for dirs in os.listdir(pcapPath):
+        for pcap in os.listdir(pcapPath + dirs):
+            if os.path.exists(pcapPath + dirs + "/LOGS/"):
+                if pcap != "LOGS" and pcap != "OLDPCAP":
+                    subprocess.call([zeek_path, "-Cr", pcapPath + dirs + "/" + pcap, "main.zeek",
+                                     "Log::default_logdir=" + pcapPath + dirs + "/LOGS/"])
+                    log_path = Path(pcapPath + dirs + "/LOGS/")
+
+                    # Per analizzare un dataset di pcap gia presente
+                    if not standard:
+                        for n in pcap.split("."):
+                            if n == "NEW_plc1" or n == "NEW_plc2" or n == "NEW_plc3" or n == "hmi" or n == "plc2" or n == "pcl3" or n == "plc1" or n == "plc2_arinox" or n == "plc3_arinox":
+                                print(bulk_load(dirs, n, log_path))
+
+                    # Per modalità standard
+                    else:
+                        print(bulk_load(dirs, pcap.split(".")[0], log_path))
+                        logging.info("Bulk load avviato")
+
+                    if os.path.exists(pcapPath + dirs + "/OLDPCAP/"):
+                        os.rename(pcapPath + dirs + "/" + pcap, pcapPath + dirs + "/OLDPCAP/" + pcap)
+                    else:
+                        os.makedirs(pcapPath + dirs + "/OLDPCAP")
+                        os.rename(pcapPath + dirs + "/" + pcap, pcapPath + dirs + "/OLDPCAP/" + pcap)
+
+            else:
+                os.makedirs(pcapPath + dirs + "/LOGS")
+
+
+
+def bulk_load(vm_name, plc_name, path_log):
+    def generate_docs():
+        logging.info(f"path log: {path_log}")
+        logList = os.listdir(path_log)
+        logging.info(f"log list: {logList}")
+        if "conn.log" not in logList:
+            logging.warning(f"'conn.log' not found in {path_log}. Skipping bulk load.")
+            return  #Significa che non ha ricevuto nessuna connessione
+        conlog = logList.index("conn.log")
+        logList.insert(0, logList.pop(conlog))
+        for log in tqdm(logList, leave=False):
+            if log != "reporter.log":
+                print("Uploading " + log)
+                log_to_df = LogToDataFrame()
+                zeek_df = log_to_df.create_dataframe("pcaps/" + vm_name + "/LOGS/" + log)
+
+                # Threat Intelligence
+                if log == "conn.log":
+                    threat_intelligence.greynoise(es, vm_name + "_intel", zeek_df, greynoiseapikey)
+
+                df_iter = zeek_df.iterrows()
+                log_name = vm_name + "_" + log.split(".")[0]
+
+                if log.split(".")[0] == "conn" and not es.indices.exists(index=log_name):
+                    opensearch_management.create_index_with_mapping(es, log_name)
+
+                l = []
+                for idx, row in df_iter:
+                    row = row.replace(np.nan, None)
+                    row = row.to_dict()
+                    row['ts'] = idx
+                    row["container_name"] = plc_name
+                    if 'duration' in row and row['duration'] is not None:
+                        row['duration'] = row['duration'].total_seconds()
+
+                    if 'suppress_for' in row and row['suppress_for'] is not None:
+                        row['suppress_for'] = row['suppress_for'].total_seconds()
+                    l.append(row)
+
+                new_df = pd.DataFrame(l)
+                # Session Calc
+                if log == "http.log" or log == "modbus.log" or log == "s7comm.log":
+                    d = interaction_calc.support_index(es, vm_name, new_df, log.split(".")[0])
+                else:
+                    d = {}
+                for row in l:
+                    if "uid" in row:
+                        if row["uid"] in d:
+                            row["request_id"] = d[row["uid"]]
+                    doc = {
+                        "_index": log_name,
+                        "_source": row
+                    }
+                    yield doc
+
+                os.remove(str(path_log) + "/" + log)
+                try:
+                    opensearch_management.create_index_pattern(log_name, True)
+                except opensearchpy.helpers.response.Response as e:
+                    print(e)
+
+    res = helpers.bulk(es, generate_docs())
+    return res
 
 # ------------------------
 # FastAPI Endpoints
