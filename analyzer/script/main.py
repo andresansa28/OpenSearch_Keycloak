@@ -127,7 +127,11 @@ def create_sh(container_list):
     with open("capture.sh", 'w') as file:
         file.write("#!/bin/bash\n")
         for container in container_list:
-            string = f"nohup tcpdump -vv -i any tcp and \"(src {container['IP']} or dst {container['IP']})\" -U -w captures/{container['name']}.$(date '+%Y-%m-%d-%H-%M').pcap & echo $! >> ./tcpdump.pid\n"
+            string = (
+                f"nohup bash -c 'tcpdump -vv -i any tcp and \"(src {container['IP']} or dst {container['IP']})\" "
+                f"-U -w captures/{container['name']}.$(date +%Y-%m-%d-%H-%M).pcap > /dev/null 2>&1 &' "
+                f"&& echo $! >> tcpdump.pid"
+            )
             file.write(string)
 
 # ------------------------
@@ -198,6 +202,7 @@ def run_zeek(standard=True):
     for dirs in os.listdir(pcapPath):
         for pcap in os.listdir(pcapPath + dirs):
             if os.path.exists(pcapPath + dirs + "/LOGS/"):
+                pcap_file = pcapPath + dirs + "/"+ pcap
                 if pcap != "LOGS" and pcap != "OLDPCAP":
                     subprocess.call([zeek_path, "-Cr", pcapPath + dirs + "/" + pcap, "main.zeek",
                                      "Log::default_logdir=" + pcapPath + dirs + "/LOGS/"])
@@ -211,7 +216,7 @@ def run_zeek(standard=True):
 
                     # Per modalità standard
                     else:
-                        print(bulk_load(dirs, pcap.split(".")[0], log_path))
+                        print(bulk_load(dirs, pcap.split(".")[0], log_path, pcap_file))
                         logging.info("Bulk load avviato")
 
                     if os.path.exists(pcapPath + dirs + "/OLDPCAP/"):
@@ -225,7 +230,7 @@ def run_zeek(standard=True):
 
 
 
-def bulk_load(vm_name, plc_name, path_log):
+def bulk_load(vm_name, plc_name, path_log, pcap_file):
     def generate_docs():
         logging.info(f"path log: {path_log}")
         logList = os.listdir(path_log)
@@ -268,15 +273,18 @@ def bulk_load(vm_name, plc_name, path_log):
                 # Session Calc
                 if log == "http.log" or log == "modbus.log" or log == "s7comm.log":
                     d = interaction_calc.support_index(es, vm_name, new_df, log.split(".")[0])
+                    if log == "modbus.log":
+                        logging.info("Aggiunta payload...")
+                        new_df = aggiungi_payload(new_df, pcap_file)
                 else:
                     d = {}
-                for row in l:
-                    if "uid" in row:
-                        if row["uid"] in d:
-                            row["request_id"] = d[row["uid"]]
+                for _, row in new_df.iterrows():
+                    row_dict = row.to_dict()
+                    if "uid" in row_dict and row_dict["uid"] in d:
+                        row_dict["request_id"] = d[row_dict["uid"]]
                     doc = {
                         "_index": log_name,
-                        "_source": row
+                        "_source": row_dict
                     }
                     yield doc
 
@@ -288,6 +296,64 @@ def bulk_load(vm_name, plc_name, path_log):
 
     res = helpers.bulk(es, generate_docs())
     return res
+
+
+
+def aggiungi_payload(new_df, pcap_file):
+    # Converti ts di new_df in datetime64[ns]
+    new_df["ts"] = pd.to_datetime(new_df["ts"].astype("int64"), unit="ns")
+
+    print("Estrazione payload da tshark...")
+    cmd = [
+        "tshark", "-r", pcap_file,
+        "-T", "fields",
+        "-e", "frame.time_epoch",
+        "-e", "ip.src",
+        "-e", "tcp.srcport",
+        "-e", "ip.dst",
+        "-e", "tcp.dstport",
+        "-e", "tcp.payload"
+    ]
+
+    try:
+        output = subprocess.check_output(cmd).decode().splitlines()
+    except subprocess.CalledProcessError as e:
+        print(f"Errore nell'esecuzione di tshark: {e}")
+        return new_df.assign(payload="-")
+
+    # Crea DataFrame tshark
+    payload_rows = []
+    for line in output:
+        parts = line.strip().split("\t")
+        if len(parts) < 6 or parts[5] == "":
+            continue
+        try:
+            ts_float = round(float(parts[0]), 6)
+            payload_rows.append({
+                "ts": pd.to_datetime(ts_float, unit="s"),  # CONVERSIONE DIRETTA
+                "id.orig_h": parts[1],
+                "id.orig_p": parts[2],
+                "id.resp_h": parts[3],
+                "id.resp_p": parts[4],
+                "payload": parts[5]
+            })
+        except:
+            continue
+
+    df_tshark = pd.DataFrame(payload_rows)
+
+    # Uniforma i tipi delle porte
+    df_tshark["id.orig_p"] = df_tshark["id.orig_p"].astype("int64")
+    df_tshark["id.resp_p"] = df_tshark["id.resp_p"].astype("int64")
+
+    # Esegui il merge su colonne compatibili
+    print("Fusione dei dati Zeek + tshark...")
+    merged = pd.merge(new_df, df_tshark, on=["ts", "id.orig_h", "id.orig_p", "id.resp_h", "id.resp_p"], how="left")
+
+    # Gestione valori mancanti
+    merged["payload"] = merged["payload"].fillna("-")
+    return merged
+
 
 # ------------------------
 # FastAPI Endpoints
