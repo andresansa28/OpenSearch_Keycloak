@@ -1,3 +1,4 @@
+import math
 import os
 import sched
 import shutil
@@ -128,10 +129,11 @@ def create_sh(container_list):
         file.write("#!/bin/bash\n")
         for container in container_list:
             string = (
-                f"nohup bash -c 'tcpdump -vv -i any tcp and \"(src {container['IP']} or dst {container['IP']})\" "
-                f"-U -w captures/{container['name']}.$(date +%Y-%m-%d-%H-%M).pcap > /dev/null 2>&1 &' "
-                f"&& echo $! >> tcpdump.pid"
-            )
+    f"nohup bash -c 'tcpdump -vv -i any tcp and \"(src {container['IP']} or dst {container['IP']})\" "
+    f"-U -w captures/{container['name']}.$(date +%Y-%m-%d-%H-%M).pcap > /dev/null 2>&1 &' "
+    f"&& echo $! >> tcpdump.pid\n"
+)
+
             file.write(string)
 
 # ------------------------
@@ -193,7 +195,7 @@ def get_pcap(scheduler):
             logging.info("Scheduler riprogrammato con successo")
 
     except Exception as e:
-        logging.error(f"Errore durante l'esecuzione di get_pcap: {e}")
+        logging.exception("Errore durante l'esecuzione di get_pcap")
         running = False  # FERMA il ciclo
 
 
@@ -272,6 +274,8 @@ def bulk_load(vm_name, plc_name, path_log, pcap_file):
                 new_df = pd.DataFrame(l)
                 # Session Calc
                 if log == "http.log" or log == "modbus.log" or log == "s7comm.log":
+                    # Verifica se le colonne necessarie esistono nel DataFrame
+                    
                     d = interaction_calc.support_index(es, vm_name, new_df, log.split(".")[0])
                     if log == "modbus.log":
                         logging.info("Aggiunta payload...")
@@ -280,15 +284,20 @@ def bulk_load(vm_name, plc_name, path_log, pcap_file):
                     d = {}
                 for _, row in new_df.iterrows():
                     row_dict = row.to_dict()
+        
+                    # Associa request_id se esiste
                     if "uid" in row_dict and row_dict["uid"] in d:
                         row_dict["request_id"] = d[row_dict["uid"]]
+        
+                    # Pulisci i NaN prima di mandare a OpenSearch
+                    row_dict = clean_document(row_dict)
+
                     doc = {
                         "_index": log_name,
                         "_source": row_dict
                     }
                     yield doc
-
-                os.remove(str(path_log) + "/" + log)
+                #os.remove(str(path_log) + "/" + log)
                 try:
                     opensearch_management.create_index_pattern(log_name, True)
                 except opensearchpy.helpers.response.Response as e:
@@ -298,10 +307,26 @@ def bulk_load(vm_name, plc_name, path_log, pcap_file):
     return res
 
 
+def clean_document(doc):
+    """Rimpiazza NaN o valori non serializzabili in un dizionario con None."""
+    for k, v in doc.items():
+        if isinstance(v, float) and math.isnan(v):
+            doc[k] = None
+        elif isinstance(v, dict):
+            doc[k] = clean_document(v)
+    return doc
+
 
 def aggiungi_payload(new_df, pcap_file):
-    # Converti ts di new_df in datetime64[ns]
-    new_df["ts"] = pd.to_datetime(new_df["ts"].astype("int64"), unit="ns")
+    # Verifica presenza colonne richieste
+    required_cols = ["ts", "id.orig_h", "id.orig_p", "id.resp_h", "id.resp_p"]
+    for col in required_cols:
+        if col not in new_df.columns:
+            raise KeyError(f"Colonna mancante in new_df: {col}")
+
+    # Converti ts in datetime (da ns a datetime64[ns])
+    new_df["ts"] = pd.to_datetime(new_df["ts"].astype("int64"), unit="ns", errors="coerce")
+    new_df = new_df.dropna(subset=["ts"])
 
     print("Estrazione payload da tshark...")
     cmd = [
@@ -321,36 +346,43 @@ def aggiungi_payload(new_df, pcap_file):
         print(f"Errore nell'esecuzione di tshark: {e}")
         return new_df.assign(payload="-")
 
-    # Crea DataFrame tshark
     payload_rows = []
     for line in output:
         parts = line.strip().split("\t")
-        if len(parts) < 6 or parts[5] == "":
+        if len(parts) < 6 or not parts[5]:
             continue
         try:
             ts_float = round(float(parts[0]), 6)
             payload_rows.append({
-                "ts": pd.to_datetime(ts_float, unit="s"),  # CONVERSIONE DIRETTA
+                "ts": pd.to_datetime(ts_float, unit="s"),
                 "id.orig_h": parts[1],
-                "id.orig_p": parts[2],
+                "id.orig_p": int(parts[2]),
                 "id.resp_h": parts[3],
-                "id.resp_p": parts[4],
+                "id.resp_p": int(parts[4]),
                 "payload": parts[5]
             })
-        except:
+        except Exception:
             continue
+
+    if not payload_rows:
+        logging.info("Nessun payload TCP trovato, si assegna '-' a tutti.")
+        new_df["payload"] = "-"
+        return new_df
 
     df_tshark = pd.DataFrame(payload_rows)
 
-    # Uniforma i tipi delle porte
-    df_tshark["id.orig_p"] = df_tshark["id.orig_p"].astype("int64")
-    df_tshark["id.resp_p"] = df_tshark["id.resp_p"].astype("int64")
+    # Uniforma tipi per merge
+    new_df["id.orig_p"] = new_df["id.orig_p"].astype("int64", errors="ignore")
+    new_df["id.resp_p"] = new_df["id.resp_p"].astype("int64", errors="ignore")
 
-    # Esegui il merge su colonne compatibili
     print("Fusione dei dati Zeek + tshark...")
-    merged = pd.merge(new_df, df_tshark, on=["ts", "id.orig_h", "id.orig_p", "id.resp_h", "id.resp_p"], how="left")
+    merged = pd.merge(
+        new_df,
+        df_tshark,
+        on=["ts", "id.orig_h", "id.orig_p", "id.resp_h", "id.resp_p"],
+        how="left"
+    )
 
-    # Gestione valori mancanti
     merged["payload"] = merged["payload"].fillna("-")
     return merged
 

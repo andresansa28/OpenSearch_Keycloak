@@ -1,0 +1,28 @@
+# Esclude il contenuto della cartella certs
+certs/
+
+# Esclude i file .done
+*.done
+.done
+
+# Esclude il contenuto della cartella analyzer/script/pcaps
+analyzer/script/pcaps/
+
+# File temporanei e di sistema
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.log
+*.tmp
+*.swp
+*.swo
+*~
+
+# File di configurazione locale che potrebbero contenere informazioni sensibili
+*.local
+*.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
