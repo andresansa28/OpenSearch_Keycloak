@@ -3,40 +3,39 @@
   margin: 0 auto;
   padding: 2rem;
   min-height: 100vh;
-  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+  /* Background will be inherited from global dark theme */
 }
-
 
 .page-header {
   text-align: center;
   margin-bottom: 3rem;
   padding: 2rem 0;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  /* Styling will be inherited from global theme */
 }
 
 .page-title {
   height: 60px;
   font-size: 2.5rem;
   font-weight: 700;
-  color: #2c3e50;
   margin: 0 0 0.5rem 0;
-  background: linear-gradient(45deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #5c6bc0 0%, #26a69a 50%, #42a5f5 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
   align-items: center;
   display: flex;
   justify-content: center;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
 }
 
 .page-subtitle {
   height: 60px;
   font-size: 1.1rem;
-  color: #718096;
   margin: 0;
   align-items: center;
   display: flex;
   justify-content: center;
+  /* Color will be inherited from dark theme */
 }
 
 .container {
@@ -213,12 +212,18 @@
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
   gap: 1rem;
+  margin-top: 15px;
 }
 
 .deployment-item {
   cursor: pointer;
   transition: all 0.3s ease;
   border: 2px solid transparent;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  text-align: center !important;
 }
 
 .deployment-item:hover {
@@ -232,18 +237,53 @@
   box-shadow: 0 6px 12px rgba(63, 81, 181, 0.3);
 }
 
+/* Perfect centering for deployment card content */
+.deployment-item .mat-mdc-card-content {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  text-align: center !important;
+  width: 100% !important;
+  gap: 16px !important;
+}
+
+/* Center all text elements in deployment cards */
+.deployment-item h3,
+.deployment-item h4,
+.deployment-item p,
+.deployment-item .mat-mdc-card-title,
+.deployment-item .mat-mdc-card-subtitle {
+  text-align: center !important;
+  margin: 0 auto !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 100% !important;
+}
+
 .deployment-title {
   display: flex;
   align-items: center;
+  justify-content: center !important;
   gap: 8px;
+  text-align: center !important;
+  width: 100% !important;
 }
 
 .deployment-info {
   margin-bottom: 1rem;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  text-align: center !important;
+  width: 100% !important;
 }
 
 .deployment-details {
   animation: fadeIn 0.3s ease;
+  width: inherit;
 }
 
 @keyframes fadeIn {
@@ -316,4 +356,10 @@
   .mat-mdc-simple-snack-bar-action {
     color: white !important;
   }
+}
+
+::ng-deep .mdc-evolution-chip-set__chips {
+  display: flex;
+  justify-content: center;
+  margin-top: 10px;
 }

@@ -142,10 +142,10 @@
           </mat-step>
 
           <!-- Step 2: PLC Configuration -->
-          <mat-step label="Configurazione PLC">
+          <mat-step label="Configurazione Device">
             <div class="step-content">
               <div class="plc-section">
-                <h3>Dispositivi PLC</h3>
+                <h3>Device</h3>
                 
                 <!-- PLC List -->
                 <div class="plc-list" *ngIf="Containers_input.length > 0">
@@ -161,13 +161,13 @@
                         <button mat-icon-button color="primary" 
                                 (click)="editPlc(i)" 
                                 [disabled]="isEditingPlc && editingPlcIndex !== i"
-                                matTooltip="Modifica PLC">
+                                matTooltip="Modifica Device">
                           <mat-icon>edit</mat-icon>
                         </button>
                         <button mat-icon-button color="warn" 
                                 (click)="removePlcIp(i)"
                                 [disabled]="isEditingPlc"
-                                matTooltip="Rimuovi PLC">
+                                matTooltip="Rimuovi Device">
                           <mat-icon>delete</mat-icon>
                         </button>
                       </div>
@@ -177,19 +177,19 @@
 
                 <!-- Add/Edit PLC Form -->
                 <div class="add-plc-form">
-                  <h4 *ngIf="isEditingPlc" style="color: #ff9800; margin-bottom: 16px;">
+                  <h4 *ngIf="isEditingPlc" class="edit-plc-header">
                     <mat-icon style="vertical-align: middle; margin-right: 8px;">edit</mat-icon>
-                    Modifica PLC: {{Containers_input[editingPlcIndex]?.name}}
+                    Modifica Device: {{Containers_input[editingPlcIndex]?.name}}
                   </h4>
                   
                   <mat-form-field appearance="outline">
-                    <mat-label>Nome PLC</mat-label>
+                    <mat-label>Nome Device</mat-label>
                     <input matInput [(ngModel)]="add_container_name_input" placeholder="PLC-001">
                     <mat-icon matSuffix>label</mat-icon>
                   </mat-form-field>
                   
                   <mat-form-field appearance="outline">
-                    <mat-label>IP PLC</mat-label>
+                    <mat-label>IP Device</mat-label>
                     <input matInput [(ngModel)]="add_container_ip_input" placeholder="192.168.1.10">
                     <mat-icon matSuffix>router</mat-icon>
                   </mat-form-field>
@@ -200,7 +200,7 @@
                             mat-raised-button color="accent" 
                             (click)="addPlcIp()">
                       <mat-icon>add</mat-icon>
-                      Aggiungi PLC
+                      Aggiungi Device
                     </button>
                     
                     <!-- Bottoni per modalità modifica -->
@@ -215,7 +215,7 @@
                               (click)="updatePlc()"
                               [disabled]="!add_container_name_input || !add_container_ip_input">
                         <mat-icon>update</mat-icon>
-                        Aggiorna PLC
+                        Aggiorna Device
                       </button>
                     </div>
                   </div>
@@ -243,16 +243,25 @@
                 
                 <!-- Alert per modalità modifica -->
                 <mat-card *ngIf="isEditMode" appearance="outlined" 
-                          style="background-color: #fff3cd; border-color: #ffeaa7; margin-bottom: 16px;">
+                          class="edit-mode-alert">
                   <mat-card-content>
                     <div style="display: flex; align-items: center;">
-                      <mat-icon style="color: #856404; margin-right: 8px;">edit</mat-icon>
-                      <span style="color: #856404;">
+                      <mat-icon style="margin-right: 8px;">edit</mat-icon>
+                      <span>
                         <strong>Modalità Modifica:</strong> Stai modificando il deployment "{{deploymentBeingEdited?.name}}"
                       </span>
                     </div>
                   </mat-card-content>
                 </mat-card>
+                
+                <!-- Campo opzionale per la rete macvlan -->
+                <mat-form-field appearance="outline" class="full-width" style="margin-bottom: 16px;">
+                  <mat-label>Nome Docker Net (opzionale)</mat-label>
+                  <input matInput [(ngModel)]="docker_net_input" 
+                         placeholder="es. macvlan_net">
+                  <mat-icon matSuffix>network_check</mat-icon>
+                  <mat-hint>Specificare il nome della Docker Net che ospita i dispositivi</mat-hint>
+                </mat-form-field>
                 
                 <mat-card class="review-card" appearance="outlined">
                   <mat-card-content>
@@ -276,15 +285,21 @@
                         </div>
                       </div>
                       <div class="review-item">
+                        <img src="assets/network.svg" alt="Docker Network" style="width: 40px; height: 40px;">
+                        <div>
+                          <strong>Docker Net:</strong> {{docker_net_input || 'Non specificata'}}
+                        </div>
+                      </div>
+                      <div class="review-item">
                         <mat-icon>developer_board</mat-icon>
                         <div>
-                          <strong>PLC Configurati:</strong> {{Containers_input.length}}
+                          <strong>Device Configurati:</strong> {{Containers_input.length}}
                         </div>
                       </div>
                     </div>
                     
                     <div class="plc-preview" *ngIf="Containers_input.length > 0">
-                      <h4>Lista PLC:</h4>
+                      <h4>Lista Device:</h4>
                       <mat-chip-set>
                         <mat-chip *ngFor="let container of Containers_input">
                           {{container.name}} ({{container.IP}})
@@ -352,12 +367,17 @@
                 <mat-chip-set>
                   <mat-chip>
                     <mat-icon>developer_board</mat-icon>
-                    {{deploy.Containers.length}} PLC
+                    {{deploy.Containers.length}} Device
                   </mat-chip>
                   <mat-chip [style.background-color]="getDeviceStatusColor(deploy.IP)" 
                            [style.color]="'white'">
                     <mat-icon>{{isDeploymentOnline(deploy.IP) ? 'wifi' : 'wifi_off'}}</mat-icon>
                     {{getDeviceStatusText(deploy.IP)}}
+                  </mat-chip>
+                  <mat-chip [style.background-color]="deploy.DockerNet ? '#2196f3' : '#9e9e9e'" 
+                           [style.color]="'white'">
+                    <mat-icon>{{deploy.DockerNet ? 'network_check' : 'network_wifi_off'}}</mat-icon>
+                    Docker Net: {{deploy.DockerNet || 'non configurata'}}
                   </mat-chip>
                 </mat-chip-set>
               </div>
@@ -378,7 +398,7 @@
                   </button>
                 </div>
                 
-                <h4>Dispositivi PLC:</h4>
+                <h4>Device Rete:</h4>
                 <div *ngIf="deploy.Containers && deploy.Containers.length > 0; else noDevices">
                   <mat-list>
                     <mat-list-item *ngFor="let container of deploy.Containers; let j = index">
@@ -386,10 +406,6 @@
                       <div matListItemTitle>{{container.name || 'PLC-' + (j + 1)}}</div>
                       <div matListItemLine>IP: {{container.IP}}</div>
                       <div matListItemMeta>
-                        <!-- <mat-chip [style.background-color]="getDeviceStatusColor(container.status)" 
-                                  [style.color]="'white'">
-                          {{container.status || 'Connected'}}
-                        </mat-chip> -->
                       </div>
                     </mat-list-item>
                   </mat-list>
@@ -397,7 +413,7 @@
                 <ng-template #noDevices>
                   <div class="no-devices">
                     <mat-icon>info</mat-icon>
-                    <p>Nessun dispositivo PLC configurato</p>
+                    <p>Nessun dispositivo configurato</p>
                   </div>
                 </ng-template>
               </div>

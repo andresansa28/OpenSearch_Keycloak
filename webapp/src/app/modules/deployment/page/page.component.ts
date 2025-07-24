@@ -38,6 +38,7 @@ export class DeploymentComponent implements OnInit, OnDestroy {
   passw_input: string = '';
   add_container_ip_input: string = '';
   add_container_name_input: string = '';
+  docker_net_input: string = ''; // Campo per la docker net
   Containers_input: Container[] = [];
 
   isLoadingDeploy: boolean = false;
@@ -63,6 +64,7 @@ export class DeploymentComponent implements OnInit, OnDestroy {
   @ViewChild('stepper') stepper!: MatStepper;
 
   private statusSubscription: Subscription | null = null;
+  private statusChangeSubscription: Subscription | null = null;
 
   constructor(
     private http: HttpClient,
@@ -118,12 +120,30 @@ export class DeploymentComponent implements OnInit, OnDestroy {
 
     // Inizia il monitoraggio dello stato dell'analyzer
     this.analyzerStatusService.startMonitoring();
-    
 
     // Sottoscrivi agli aggiornamenti dello stato
     this.statusSubscription = this.analyzerStatusService.isRunning$.subscribe(
       (isRunning: boolean) => {
         this.analyzerRunning = isRunning;
+      }
+    );
+
+    // Sottoscrivi ai cambiamenti di stato per mostrare notifiche
+    this.statusChangeSubscription = this.analyzerStatusService.statusChanged$.subscribe(
+      (change: { from: boolean, to: boolean }) => {
+        if (change.from === true && change.to === false) {
+          // L'analyzer è passato da running a stopped
+          this._snackBar.open('Analyzer fermato inaspettatamente, controllare "docker logs analyzer"', 'Chiudi', {
+            duration: 6000, //mettere undefined
+            panelClass: ['error-snackbar']
+          });
+        } else if (change.from === false && change.to === true) {
+          // L'analyzer è passato da stopped a running
+          this._snackBar.open('Analyzer avviato con successo!', 'Chiudi', {
+            duration: 4000,
+            panelClass: ['success-snackbar']
+          });
+        }
       }
     );
   }
@@ -132,9 +152,12 @@ export class DeploymentComponent implements OnInit, OnDestroy {
     // Ferma il monitoraggio
     this.analyzerStatusService.stopMonitoring();
 
-    // Pulisci la subscription
+    // Pulisci le subscription
     if (this.statusSubscription) {
       this.statusSubscription.unsubscribe();
+    }
+    if (this.statusChangeSubscription) {
+      this.statusChangeSubscription.unsubscribe();
     }
   }
 
@@ -152,6 +175,7 @@ export class DeploymentComponent implements OnInit, OnDestroy {
             passw: res.RemoteDeployments[i].passw,
             active: true,
             Containers: res.RemoteDeployments[i].Containers,
+            DockerNet: res.RemoteDeployments[i].DockerNet, // Aggiungi mappatura DockerNet
           };
           remote.push(deploy);
         }
@@ -239,6 +263,7 @@ export class DeploymentComponent implements OnInit, OnDestroy {
       passw: this.passw_input,
       active: true,
       Containers: this.Containers_input,
+      DockerNet: this.docker_net_input || undefined, // Include il campo macvlan se specificato
     };
 
     this.configS.addDeployment(deploy).subscribe({
@@ -382,11 +407,7 @@ export class DeploymentComponent implements OnInit, OnDestroy {
     this.analyzerS.start().subscribe({
       next: (res: any) => {
         console.log(res);
-        this._snackBar.open('Analyzer avviato con successo!', 'Chiudi', {
-          duration: 3000,
-          panelClass: ['success-snackbar']
-        });
-        // Aggiorna lo stato immediatamente
+        // Aggiorna lo stato immediatamente - la notifica verrà mostrata dal monitoraggio automatico
         this.analyzerStatusService.refreshStatus();
       },
       error: () => {
@@ -592,6 +613,7 @@ export class DeploymentComponent implements OnInit, OnDestroy {
     this.user_input = deploy.user;
     this.passw_input = deploy.passw;
     this.Containers_input = [...deploy.Containers]; // Copia i container
+    this.docker_net_input = deploy.DockerNet || ''; // Carica il valore della docker net
 
     // Reset del stepper al primo step
     if (this.stepper) {
@@ -649,6 +671,7 @@ export class DeploymentComponent implements OnInit, OnDestroy {
       passw: this.passw_input,
       active: true,
       Containers: this.Containers_input,
+      DockerNet: this.docker_net_input || undefined, // Include il campo macvlan aggiornato
     };
 
     // Prima rimuovi il deployment esistente, poi aggiungi quello aggiornato
@@ -714,6 +737,7 @@ export class DeploymentComponent implements OnInit, OnDestroy {
     this.Containers_input = [];
     this.add_container_ip_input = '';
     this.add_container_name_input = '';
+    this.docker_net_input = ''; // Reset del campo macvlan
 
     // Pulisci anche le variabili di modifica PLC
     this.editingPlcIndex = -1;

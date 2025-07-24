@@ -1,16 +1,520 @@
 /* You can add global styles to this file, and also import other style files */
-body {
-  background-color: #F4F4F5
-}
 
+@use '@angular/material' as mat;
+
+/* Include the common styles for Angular Material */
+@include mat.core();
+
+/* Define a modern semi-dark theme */
+$dark-primary: mat.define-palette(mat.$indigo-palette, 400, 200, 600);
+$dark-accent: mat.define-palette(mat.$teal-palette, 300, 100, 500);
+$dark-warn: mat.define-palette(mat.$pink-palette, 400, 200, 600);
+
+/* Create the dark theme object */
+$dark-theme: mat.define-dark-theme((color: (primary: $dark-primary,
+        accent: $dark-accent,
+        warn: $dark-warn,
+      ),
+      typography: mat.define-typography-config(),
+      density: 0,
+    ));
+
+/* Include theme styles for all components */
+@include mat.all-component-themes($dark-theme);
+
+/* Global Body Styles for Modern Semi-Dark Theme */
 html,
 body {
   height: 100%;
+  margin: 0;
+  padding: 0;
+  font-family: 'Inter', 'Roboto', -apple-system, BlinkMacSystemFont, sans-serif;
+  background-color: #1a1f2e;
+  /* Soft dark blue-gray */
+  color: rgba(255, 255, 255, 0.9);
+  line-height: 1.6;
+}
+
+/* Modern gradient background with full coverage */
+html {
+  background: linear-gradient(135deg,
+      #1a1f2e 0%,
+      #232946 25%,
+      #2d3561 50%,
+      #1a1f2e 100%);
+  background-attachment: fixed;
+  min-height: 100vh;
 }
 
 body {
-  margin: 0;
-  font-family: Roboto, "Helvetica Neue", sans-serif;
+  background: linear-gradient(135deg,
+      #1a1f2e 0%,
+      #232946 25%,
+      #2d3561 50%,
+      #1a1f2e 100%);
+  background-attachment: fixed;
+  min-height: 100vh;
+}
+
+/* Ensure full page coverage */
+html::before,
+body::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100vh;
+  background: linear-gradient(135deg,
+      #1a1f2e 0%,
+      #232946 25%,
+      #2d3561 50%,
+      #1a1f2e 100%);
+  z-index: -1;
+  pointer-events: none;
+}
+
+/* Modern Semi-Dark Theme Components */
+.mat-mdc-card {
+  background: #2a3042 !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  border-radius: 16px !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1) !important;
+}
+
+.mat-mdc-form-field {
+  .mat-mdc-text-field-wrapper {
+    background: rgba(42, 48, 66, 0.6) !important;
+    border-radius: 12px !important;
+  }
+
+  .mat-mdc-form-field-outline {
+    border-radius: 12px !important;
+  }
+}
+
+/* Modern buttons */
+.mat-mdc-raised-button {
+  border-radius: 12px !important;
+  font-weight: 500 !important;
+  text-transform: none !important;
+  letter-spacing: 0.3px !important;
+
+  &.mat-primary {
+    background: #5c6bc0 !important;
+    box-shadow: 0 2px 8px rgba(92, 107, 192, 0.2) !important;
+  }
+
+  &.mat-accent {
+    background: #26a69a !important;
+    box-shadow: 0 2px 8px rgba(38, 166, 154, 0.2) !important;
+  }
+}
+
+/* Modern scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(42, 48, 66, 0.3);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #5c6bc0;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #7986cb;
+}
+
+/* Page specific modern enhancements */
+.config-page {
+  background: transparent !important;
+}
+
+.page-header {
+  background: rgba(42, 48, 66, 0.8) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  border-radius: 20px !important;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1) !important;
+}
+
+.deployment-item {
+  background: rgba(42, 48, 66, 0.7) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  border-radius: 20px !important;
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: center !important;
+  text-align: center !important;
+  padding: 24px !important;
+
+  &:hover {
+    border-color: rgba(92, 107, 192, 0.6) !important;
+  }
+
+  &.selected {
+    border-color: rgba(92, 107, 192, 0.8) !important;
+  }
+}
+
+/* Perfect centering for deployment card content */
+.deployment-item .mat-mdc-card-content {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  text-align: center !important;
+  width: 100% !important;
+  gap: 16px !important;
+}
+
+/* Center deployment card titles and content */
+.deployment-item .mat-mdc-card-title,
+.deployment-item .mat-mdc-card-subtitle,
+.deployment-item h3,
+.deployment-item h4,
+.deployment-item p,
+.deployment-item .deployment-info {
+  text-align: center !important;
+  margin: 0 auto !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+/* Center chip containers */
+.deployment-item .mat-chip-set,
+.deployment-item .chip-container,
+.deployment-item .chips {
+  display: flex !important;
+  flex-wrap: wrap !important;
+  justify-content: center !important;
+  align-items: center !important;
+  gap: 8px !important;
+}
+
+/* Individual chips centering */
+.deployment-item .mat-mdc-chip {
+  margin: 4px !important;
+}
+
+/* Enhanced modern deployment cards */
+.deployment-details {
+  background: rgba(35, 41, 70, 0.8) !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  border-radius: 16px !important;
+}
+
+/* Modern chip styles */
+.mat-mdc-chip {
+  border-radius: 20px !important;
+  font-weight: 500 !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+}
+
+/* Enhanced list items */
+.mat-mdc-list-item {
+  border-radius: 12px !important;
+  margin: 4px 0 !important;
+
+  &:hover {
+    background: rgba(92, 107, 192, 0.1) !important;
+  }
+}
+
+/* Modern Stepper Styles */
+.mat-stepper-horizontal {
+  background: transparent !important;
+}
+
+.mat-horizontal-stepper-header-container {
+  background: rgba(42, 48, 66, 0.7) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  border-radius: 16px !important;
+  padding: 8px 16px !important;
+  margin-bottom: 24px !important;
+}
+
+.mat-step-header {
+  background: transparent !important;
+  border-radius: 12px !important;
+  padding: 12px 16px !important;
+
+  &:hover {
+    background: rgba(92, 107, 192, 0.1) !important;
+  }
+
+  &.mat-step-header-selected {
+    background: rgba(92, 107, 192, 0.2) !important;
+    border: 1px solid rgba(92, 107, 192, 0.4) !important;
+  }
+}
+
+.mat-step-icon {
+  background: linear-gradient(135deg, #5c6bc0 0%, #3f51b5 100%) !important;
+  border: 2px solid rgba(255, 255, 255, 0.2) !important;
+  color: white !important;
+  box-shadow: 0 4px 12px rgba(92, 107, 192, 0.3) !important;
+
+  &.mat-step-icon-selected {
+    background: linear-gradient(135deg, #7986cb 0%, #5c6bc0 100%) !important;
+    box-shadow: 0 6px 20px rgba(92, 107, 192, 0.4) !important;
+  }
+}
+
+.mat-step-label {
+  color: rgba(255, 255, 255, 0.9) !important;
+  font-weight: 500 !important;
+
+  &.mat-step-label-selected {
+    color: #ffffff !important;
+    font-weight: 600 !important;
+  }
+}
+
+.mat-stepper-horizontal-line {
+  background: linear-gradient(90deg,
+      rgba(92, 107, 192, 0.3) 0%,
+      rgba(38, 166, 154, 0.3) 100%) !important;
+  height: 2px !important;
+  margin: 0 8px !important;
+}
+
+.mat-horizontal-stepper-content {
+  background: linear-gradient(145deg,
+      rgba(42, 48, 66, 0.8) 0%,
+      rgba(50, 56, 81, 0.8) 100%) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  border-radius: 20px !important;
+  backdrop-filter: blur(15px);
+  padding: 32px !important;
+  margin-top: 16px !important;
+  box-shadow:
+    0 12px 40px rgba(0, 0, 0, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1) !important;
+}
+
+/* Modern component specific classes */
+.edit-mode-alert {
+  margin-bottom: 16px;
+  background: linear-gradient(145deg,
+      rgba(255, 193, 7, 0.15) 0%,
+      rgba(255, 152, 0, 0.1) 100%) !important;
+  border: 1px solid rgba(255, 193, 7, 0.3) !important;
+  border-radius: 16px !important;
+  backdrop-filter: blur(10px);
+
+  span {
+    color: #ffc107;
+    font-weight: 500;
+  }
+
+  mat-icon {
+    color: #ffc107;
+  }
+}
+
+.edit-plc-header {
+  color: #ffc107 !important;
+  margin-bottom: 16px;
+  font-weight: 500 !important;
+}
+
+/* Enhanced Table Styles for Users Page */
+.mat-mdc-table {
+  background: linear-gradient(145deg,
+      rgba(42, 48, 66, 0.7) 0%,
+      rgba(50, 56, 81, 0.7) 100%) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  border-radius: 16px !important;
+  backdrop-filter: blur(15px);
+  overflow: hidden;
+  box-shadow:
+    0 8px 32px rgba(0, 0, 0, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1) !important;
+}
+
+.mat-mdc-header-row {
+  background: linear-gradient(145deg,
+      rgba(35, 41, 70, 0.9) 0%,
+      rgba(45, 53, 97, 0.9) 100%) !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1) !important;
+}
+
+.mat-mdc-header-cell {
+  color: rgba(255, 255, 255, 0.9) !important;
+  font-weight: 600 !important;
+  font-size: 14px !important;
+  border-bottom: none !important;
+}
+
+.mat-mdc-row {
+  background: transparent !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05) !important;
+  transition: all 0.3s ease !important;
+
+  &:hover {
+    background: rgba(92, 107, 192, 0.1) !important;
+    transform: translateX(4px);
+  }
+
+  &:last-child {
+    border-bottom: none !important;
+  }
+}
+
+.mat-mdc-cell {
+  color: rgba(255, 255, 255, 0.85) !important;
+  border-bottom: none !important;
+  font-size: 13px !important;
+}
+
+/* Enhanced Toolbar Styles */
+.mat-toolbar {
+  background: linear-gradient(145deg,
+      rgba(42, 48, 66, 0.9) 0%,
+      rgba(50, 56, 81, 0.9) 100%) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  border-radius: 16px !important;
+  backdrop-filter: blur(20px);
+  box-shadow:
+    0 8px 32px rgba(0, 0, 0, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1) !important;
+  color: rgba(255, 255, 255, 0.9) !important;
+  margin-bottom: 24px !important;
+}
+
+/* Enhanced Dialog Styles */
+.mat-mdc-dialog-container {
+  background: linear-gradient(145deg,
+      rgba(42, 48, 66, 0.95) 0%,
+      rgba(50, 56, 81, 0.95) 100%) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  border-radius: 20px !important;
+  backdrop-filter: blur(20px);
+  box-shadow:
+    0 20px 60px rgba(0, 0, 0, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1) !important;
+}
+
+.mat-mdc-dialog-title {
+  color: rgba(255, 255, 255, 0.9) !important;
+  font-weight: 600 !important;
+}
+
+.mat-mdc-dialog-content {
+  color: rgba(255, 255, 255, 0.85) !important;
+}
+
+/* Enhanced Tabs */
+.mat-mdc-tab-group {
+  background: transparent !important;
+}
+
+.mat-mdc-tab-header {
+  background: linear-gradient(145deg,
+      rgba(42, 48, 66, 0.7) 0%,
+      rgba(50, 56, 81, 0.7) 100%) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  border-radius: 16px 16px 0 0 !important;
+  backdrop-filter: blur(15px);
+}
+
+.mat-mdc-tab {
+  color: rgba(255, 255, 255, 0.7) !important;
+
+  &.mdc-tab--active {
+    color: #ffffff !important;
+  }
+}
+
+.mat-mdc-tab-body-content {
+  background: linear-gradient(145deg,
+      rgba(42, 48, 66, 0.8) 0%,
+      rgba(50, 56, 81, 0.8) 100%) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  border-top: none !important;
+  border-radius: 0 0 16px 16px !important;
+  backdrop-filter: blur(15px);
+  padding: 24px !important;
+}
+
+/* Page containers */
+.page-container,
+.main-content,
+.content-wrapper {
+  background: transparent !important;
+}
+
+/* Enhanced Menu */
+.mat-mdc-menu-panel {
+  background: linear-gradient(145deg,
+      rgba(42, 48, 66, 0.95) 0%,
+      rgba(50, 56, 81, 0.95) 100%) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  border-radius: 12px !important;
+  backdrop-filter: blur(20px);
+  box-shadow:
+    0 12px 40px rgba(0, 0, 0, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1) !important;
+}
+
+.mat-mdc-menu-item {
+  color: rgba(255, 255, 255, 0.85) !important;
+
+  &:hover {
+    background: rgba(92, 107, 192, 0.2) !important;
+  }
+}
+
+/* Modern glassmorphism effect for cards */
+.mat-mdc-card:hover {
+  transform: translateY(-2px);
+  box-shadow:
+    0 12px 48px rgba(0, 0, 0, 0.25),
+    0 4px 16px rgba(0, 0, 0, 0.15),
+    inset 0 1px 0 rgba(255, 255, 255, 0.15) !important;
+}
+
+/* Modern animations */
+@keyframes float {
+
+  0%,
+  100% {
+    transform: translateY(0px);
+  }
+
+  50% {
+    transform: translateY(-4px);
+  }
+}
+
+@keyframes pulse-glow {
+
+  0%,
+  100% {
+    box-shadow: 0 0 20px rgba(92, 107, 192, 0.2);
+  }
+
+  50% {
+    box-shadow: 0 0 30px rgba(92, 107, 192, 0.4);
+  }
+}
+
+.page-header {
+  animation: float 6s ease-in-out infinite;
+}
+
+/* Smooth transitions for all interactive elements */
+* {
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+    box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+    border-color 0.3s ease;
 }
 
 /* Global Snackbar Styles */

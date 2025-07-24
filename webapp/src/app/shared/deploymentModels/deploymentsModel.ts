@@ -10,8 +10,9 @@ export interface DeployModel {
     user: string;
     passw: string;
     active: boolean;
-    Containers : Container[];
+    Containers: Container[];
     status?: string; // AGGIUNGI questa riga
+    DockerNet?: string; // Campo opzionale per la rete macvlan
 }
 
 export interface DeploymentsModel {

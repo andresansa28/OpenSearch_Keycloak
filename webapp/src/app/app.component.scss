@@ -1,0 +1,83 @@
+/* App Component Dark Theme */
+.app-container {
+    min-height: 100vh;
+    background: var(--gradient-primary);
+    color: var(--primary-text);
+}
+
+/* Navigation Styles */
+.mat-toolbar {
+    background: var(--card-bg) !important;
+    color: var(--primary-text) !important;
+    border-bottom: 1px solid var(--border-color) !important;
+    box-shadow: var(--shadow-light) !important;
+}
+
+.mat-toolbar .mat-toolbar-row {
+    padding: 0 2rem;
+}
+
+.mat-toolbar button {
+    color: var(--primary-text) !important;
+}
+
+.mat-toolbar .mat-button:hover {
+    background: var(--surface-bg) !important;
+}
+
+/* Sidenav Styles */
+.mat-sidenav {
+    background: var(--secondary-bg) !important;
+    color: var(--primary-text) !important;
+    border-right: 1px solid var(--border-color) !important;
+    width: 280px;
+}
+
+.mat-sidenav .mat-nav-list {
+    padding: 0;
+}
+
+.mat-sidenav .mat-list-item {
+    color: var(--primary-text) !important;
+    border-radius: 0 25px 25px 0;
+    margin: 0.25rem 0;
+    margin-right: 1rem;
+
+    &:hover {
+        background: var(--surface-bg) !important;
+        color: var(--accent-primary) !important;
+    }
+
+    &.active {
+        background: var(--gradient-accent) !important;
+        color: white !important;
+    }
+}
+
+.mat-sidenav-content {
+    background: var(--primary-bg) !important;
+}
+
+/* Router Outlet */
+router-outlet+* {
+    min-height: calc(100vh - 64px);
+    background: var(--gradient-primary);
+}
+
+/* Loading Overlay */
+.loading-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(26, 26, 26, 0.8);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+}
+
+.loading-spinner {
+    --mdc-circular-progress-active-indicator-color: var(--accent-primary) !important;
+}
