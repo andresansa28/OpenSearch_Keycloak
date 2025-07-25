@@ -83,19 +83,5 @@ export class UsermanagmentApiService {
     return this.httpClient.put(`${this.url}/user/update/`, userData);
   }
 
-  getTenants(token: any) {
-    const headers = {
-      'Authorization': `Bearer ${token}`,
-      'Content-Type': 'application/json'
-    };
-
-    return this.httpClient.get(this.url + "/api/tenants", { headers });
-  }
-
-  getTenantIndices(tenant: string) {
-    let queryParams = new HttpParams();
-    queryParams = queryParams.append("tenant", tenant);
-    return this.httpClient.get(this.url + "/api/tenant", { params: queryParams });
-  }
-
+  
 }

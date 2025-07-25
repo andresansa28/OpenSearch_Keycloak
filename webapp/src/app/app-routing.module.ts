@@ -1,8 +1,8 @@
-import {NgModule} from '@angular/core';
-import {RouterModule, Routes} from '@angular/router';
-import {AppLayoutComponent} from "./shared/layout/app.layout.component";
-import {AuthGuard} from "./shared/guards/auth.guard";
+import { NgModule } from '@angular/core';
+import { RouterModule, Routes } from '@angular/router';
 import { NgxPermissionsGuard } from 'ngx-permissions';
+import { AuthGuard } from "./shared/guards/auth.guard";
+import { AppLayoutComponent } from "./shared/layout/app.layout.component";
 
 const routes: Routes = [
   {
@@ -19,8 +19,8 @@ const routes: Routes = [
         loadChildren: () =>
           import(
             './modules/home/home.module'
-            ).then((m) => m.HomeModule),
-        data:{
+          ).then((m) => m.HomeModule),
+        data: {
           permissions: {
             only: "admin"
           }
@@ -43,12 +43,12 @@ const routes: Routes = [
       // },
       {
         path: 'usermanager',
-        canActivate: [AuthGuard,NgxPermissionsGuard],
+        canActivate: [AuthGuard, NgxPermissionsGuard],
         loadChildren: () =>
           import(
             './modules/usermanager/usermanager.module'
-            ).then((m) => m.UsermanagerModule),
-        data:{
+          ).then((m) => m.UsermanagerModule),
+        data: {
           permissions: {
             only: "admin"
           }
@@ -56,16 +56,24 @@ const routes: Routes = [
       },
       {
         path: 'deployment',
-        canActivate: [AuthGuard,NgxPermissionsGuard],
+        canActivate: [AuthGuard, NgxPermissionsGuard],
         loadChildren: () =>
-        import(
-          './modules/deployment/deployment.module'
+          import(
+            './modules/deployment/deployment.module'
           ).then((m) => m.DeploymentModule),
-        data:{
+        data: {
           permissions: {
             only: "admin"
           }
         }
+      },
+      {
+        path: 'threat',
+        canActivate: [AuthGuard],
+        loadChildren: () =>
+          import(
+            './modules/threat/threat.module'
+          ).then((m) => m.ThreatModule)
       }
     ],
   }
@@ -74,7 +82,7 @@ const routes: Routes = [
 @NgModule({
   imports: [
     RouterModule.forRoot(routes, {
-        useHash: true,
+      useHash: true,
     }),
   ],
   exports: [RouterModule],

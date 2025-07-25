@@ -4,4 +4,4 @@ uvicorn
 opensearch-py
 geoip2
 fastapi_keycloak
-
+PyJWT

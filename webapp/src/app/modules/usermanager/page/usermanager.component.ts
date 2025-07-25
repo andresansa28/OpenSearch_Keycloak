@@ -28,9 +28,9 @@ interface Group {
 
 @Component({
   selector: 'app-user-management',
-  templateUrl: './page.component.html',
+  templateUrl: './usermanager.component.html',
   standalone: false,
-  styleUrls: ['./page.component.scss']
+  styleUrls: ['./usermanager.component.scss']
 })
 export class PageComponent implements OnInit {
   // Implementazione del metodo deleteUser

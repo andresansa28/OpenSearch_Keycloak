@@ -5,7 +5,7 @@ import { NgxPermissionsModule } from 'ngx-permissions';
 import { CardModule } from "primeng/card";
 import { MaterialModule } from 'src/app/shared/material-module';
 import { HomeRoutingModule } from "./home-routing.module";
-import { HomeComponent } from "./pages/dashboard/home.component";
+import { HomeComponent } from "./pages/dashboard/dashboard.component";
 
 @NgModule({
   declarations: [HomeComponent],

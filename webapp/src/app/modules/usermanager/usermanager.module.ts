@@ -1,10 +1,10 @@
-import { NgModule } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { UsermanagerRoutingModule } from './usermanager-routing.module';
-import { PageComponent } from './page/page.component';
+import { NgModule } from '@angular/core';
+import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { NgxPermissionsModule } from 'ngx-permissions';
 import { MaterialModule } from 'src/app/shared/material-module';
-import { FormsModule, ReactiveFormsModule } from '@angular/forms';
+import { PageComponent } from './page/usermanager.component';
+import { UsermanagerRoutingModule } from './usermanager-routing.module';
 
 
 @NgModule({
@@ -20,4 +20,4 @@ import { FormsModule, ReactiveFormsModule } from '@angular/forms';
     ReactiveFormsModule
   ]
 })
-export class UsermanagerModule {}
+export class UsermanagerModule { }

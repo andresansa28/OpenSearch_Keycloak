@@ -1,0 +1,365 @@
+.config-page {
+  max-width: 1700px;
+  margin: 0 auto;
+  padding: 2rem;
+  min-height: 100vh;
+  /* Background will be inherited from global dark theme */
+}
+
+.page-header {
+  text-align: center;
+  margin-bottom: 3rem;
+  padding: 2rem 0;
+  /* Styling will be inherited from global theme */
+}
+
+.page-title {
+  height: 60px;
+  font-size: 2.5rem;
+  font-weight: 700;
+  margin: 0 0 0.5rem 0;
+  background: linear-gradient(135deg, #5c6bc0 0%, #26a69a 50%, #42a5f5 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  align-items: center;
+  display: flex;
+  justify-content: center;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
+}
+
+.page-subtitle {
+  height: 60px;
+  font-size: 1.1rem;
+  margin: 0;
+  align-items: center;
+  display: flex;
+  justify-content: center;
+  /* Color will be inherited from dark theme */
+}
+
+.container {
+  max-width: 1600px;
+  margin: 0 auto;
+  padding: 2rem;
+}
+
+.config-card,
+.deployment-card,
+.deployments-list-card {
+  margin-bottom: 2rem;
+  border-radius: 12px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.config-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2rem;
+  margin-top: 1rem;
+}
+
+.config-column {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.analyzer-column {
+  display: flex;
+  flex-direction: column;
+}
+
+.analyzer-card {
+  height: 100%;
+  border: 2px solid #e0e0e0;
+}
+
+.analyzer-status {
+  margin-bottom: 1rem;
+  display: flex;
+  justify-content: center;
+}
+
+.analyzer-button {
+  margin-bottom: 1rem;
+}
+
+.analyzer-controls {
+  display: flex;
+  gap: 1rem;
+}
+
+.control-button {
+  flex: 1;
+}
+
+.full-width {
+  width: 100%;
+}
+
+.config-button {
+  margin-bottom: 1rem;
+}
+
+.step-content {
+  padding: 1rem 0;
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.step-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.plc-section {
+  margin-bottom: 1rem;
+}
+
+.plc-list {
+  margin-bottom: 1rem;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+}
+
+.add-plc-form {
+  display: grid;
+  grid-template-columns: 1fr 1fr auto;
+  gap: 1rem;
+  align-items: end;
+}
+
+.file-upload-section {
+  text-align: center;
+}
+
+.upload-area {
+  border: 2px dashed #ddd;
+  border-radius: 8px;
+  padding: 2rem;
+  margin: 1rem 0;
+  transition: all 0.3s ease;
+  cursor: pointer;
+}
+
+.upload-area:hover,
+.upload-area.drag-over {
+  border-color: #3f51b5;
+  background-color: #f5f5f5;
+}
+
+.upload-icon {
+  font-size: 48px;
+  height: 48px;
+  width: 48px;
+  color: #999;
+  margin-bottom: 1rem;
+}
+
+.selected-file {
+  margin-top: 1rem;
+}
+
+.review-section {
+  margin-bottom: 1rem;
+}
+
+.review-card {
+  margin-bottom: 1rem;
+}
+
+.review-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.review-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.plc-preview {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid #e0e0e0;
+}
+
+.no-devices {
+  text-align: center;
+  padding: 2rem;
+  color: #666;
+}
+
+.no-devices mat-icon {
+  font-size: 48px;
+  height: 48px;
+  width: 48px;
+  margin-bottom: 1rem;
+}
+
+.deployments-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+  gap: 1rem;
+  margin-top: 15px;
+}
+
+.deployment-item {
+  cursor: pointer;
+  transition: all 0.3s ease;
+  border: 2px solid transparent;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  text-align: center !important;
+}
+
+.deployment-item:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+}
+
+.deployment-item.selected {
+  border-color: #3f51b5;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 12px rgba(63, 81, 181, 0.3);
+}
+
+/* Perfect centering for deployment card content */
+.deployment-item .mat-mdc-card-content {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  text-align: center !important;
+  width: 100% !important;
+  gap: 16px !important;
+}
+
+/* Center all text elements in deployment cards */
+.deployment-item h3,
+.deployment-item h4,
+.deployment-item p,
+.deployment-item .mat-mdc-card-title,
+.deployment-item .mat-mdc-card-subtitle {
+  text-align: center !important;
+  margin: 0 auto !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 100% !important;
+}
+
+.deployment-title {
+  display: flex;
+  align-items: center;
+  justify-content: center !important;
+  gap: 8px;
+  text-align: center !important;
+  width: 100% !important;
+}
+
+.deployment-info {
+  margin-bottom: 1rem;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  text-align: center !important;
+  width: 100% !important;
+}
+
+.deployment-details {
+  animation: fadeIn 0.3s ease;
+  width: inherit;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (max-width: 768px) {
+  .config-grid {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+
+  .form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .add-plc-form {
+    grid-template-columns: 1fr;
+  }
+
+  .analyzer-controls {
+    flex-direction: column;
+  }
+
+  .deployments-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Custom Snackbar Styles */
+::ng-deep .success-snackbar {
+  background-color: #4caf50 !important;
+  color: white !important;
+
+  .mat-mdc-simple-snack-bar-action {
+    color: white !important;
+  }
+}
+
+::ng-deep .info-snackbar {
+  background-color: #2196f3 !important;
+  color: white !important;
+
+  .mat-mdc-simple-snack-bar-action {
+    color: white !important;
+  }
+}
+
+::ng-deep .warning-snackbar {
+  background-color: #ff9800 !important;
+  color: white !important;
+
+  .mat-mdc-simple-snack-bar-action {
+    color: white !important;
+  }
+}
+
+::ng-deep .error-snackbar {
+  background-color: #f44336 !important;
+  color: white !important;
+
+  .mat-mdc-simple-snack-bar-action {
+    color: white !important;
+  }
+}
+
+::ng-deep .mdc-evolution-chip-set__chips {
+  display: flex;
+  justify-content: center;
+  margin-top: 10px;
+}

@@ -1,6 +1,7 @@
 import json
 import os
 import sys
+import jwt
 import requests
 from typing import Annotated
 
@@ -340,3 +341,227 @@ async def keycloak_exception_handler(request: Request, exc: KeycloakError):
         status_code=exc.status_code,
         content={"message": exc.reason},
     )
+
+
+#login --> vedere a quali tenant l'utente loggato ha accesso --> selezionare un tenant --> vedere gli indici disponibili per quel tenant
+@app.get("/api/tenants")
+def user_tenants(request: Request):
+    try:
+        # Estrae il token dall'header Authorization
+        auth_header = request.headers.get("Authorization")
+        if not auth_header or not auth_header.startswith("Bearer "):
+            return JSONResponse(
+                status_code=401,
+                content={"error": "Token di autorizzazione mancante"}
+            )
+        
+        token = auth_header.split(" ")[1]
+        
+        # Prende i gruppi dell'utente dal token
+        decoded = jwt.decode(token, options={"verify_signature": False})
+        # Accedi al campo 'groups'
+        user_groups = decoded.get("groups", [])
+        
+        # Controlla se l'utente è admin
+        user_roles = decoded.get("realm_access", {}).get("roles", [])
+        is_admin = "admin" in user_roles
+
+        # Chiama OpenSearch per ottenere tutti i tenants
+        response = es.transport.perform_request(
+            "GET",
+            "/_plugins/_security/api/tenants"
+        )
+
+        # Se è admin, ritorna tutti i tenant
+        if is_admin:
+            return response
+        
+        # Altrimenti filtra i tenants che matchano con i gruppi dell'utente
+        filtered_tenants = {
+            tenant: data
+            for tenant, data in response.items()
+            if tenant in user_groups
+        }
+
+        return filtered_tenants
+
+    except Exception as e:
+        return JSONResponse(
+            status_code=500,
+            content={"error": f"Errore nel recupero dei tenants: {str(e)}"}
+        )
+    
+@app.get("/api/tenant")
+def get_tenant_indices(tenant: str):
+    try:
+        # Recupera tutti gli indici
+        indices_response = es.transport.perform_request(
+            "GET",
+            "/_cat/indices",
+            params={"format": "json"}
+        )
+        
+        # Se il tenant è "global_tenant" o vuoto, mostra tutti gli indici pubblici
+        if tenant in ["global_tenant", ""]:
+            return {"tenant": tenant, "indices": indices_response}
+        
+        # Per i tenant privati, filtra gli indici che hanno il prefisso del tenant
+        # OpenSearch usa il formato: {tenant_hash}_{index_name}
+        tenant_indices = []
+        for index in indices_response:
+            index_name = index.get("index", "")
+            # Gli indici del tenant iniziano con il prefisso del tenant
+            if index_name.startswith(f"{tenant}_") or index_name == tenant:
+                tenant_indices.append(index)
+        
+        return {
+            "tenant": tenant, 
+            "indices": tenant_indices,
+            "total_indices": len(tenant_indices)
+        }
+        
+    except Exception as e:
+        return JSONResponse(
+            status_code=500,
+            content={"error": f"Errore nel recupero degli indici per il tenant '{tenant}': {str(e)}"}
+        )
+    
+@app.get("/api/arp_spoof")
+def get_arp_spoof_index(tenant):
+    index_name = f"{tenant}_arp_spoof"
+    try:
+        if not es.indices.exists(index=index_name):
+            return None
+        
+        response = es.search(
+            index=index_name,
+            body={
+                "size": 100,
+                "query": {"match_all": {}},
+                "sort": [{"ts": {"order": "desc"}}]
+            }
+        )
+        hits = response.get("hits", {}).get("hits", [])
+        total = response.get("hits", {}).get("total", {}).get("value", 0)
+        
+        # Estrai solo _source e eventualmente _id
+        docs = [
+            {**hit.get("_source", {}), "_id": hit.get("_id")}
+            for hit in hits
+        ]
+        
+        return {
+            "index": index_name,
+            "total": total,
+            "documents": docs
+        }
+        
+    except Exception as e:
+        print(f"Errore OpenSearch: {e}")
+        return None
+
+
+@app.get("/api/modbus_dos")
+def get_modbus_dos_index(tenant):
+    index_name = f"{tenant}_modbus_dos"
+    try:
+        if not es.indices.exists(index=index_name):
+            return None
+        
+        response = es.search(
+            index=index_name,
+            body={
+                "size": 100,
+                "query": {"match_all": {}},
+                "sort": [{"ts": {"order": "asc"}}]
+            }
+        )
+        
+        hits = response.get("hits", {}).get("hits", [])
+        total = response.get("hits", {}).get("total", {}).get("value", 0)
+        
+        # Estrai solo _source e eventualmente _id
+        docs = [
+            {**hit.get("_source", {}), "_id": hit.get("_id")}
+            for hit in hits
+        ]
+        
+        return {
+            "index": index_name,
+            "total": total,
+            "documents": docs
+        }
+        
+    except Exception as e:
+        print(f"Errore OpenSearch: {e}")
+        return None
+
+
+@app.post("/api/table")
+async def get_table_data(request: Request):
+    try:
+        body = await request.json()
+        tenant = body.get("tenant")
+        table_type = body.get("tableType")
+
+        if not tenant or not table_type:
+            return JSONResponse(status_code=400, content={"error": "Tenant e tipo tabella sono obbligatori"})
+
+        headers = {"security_tenant": tenant}
+
+        # Tabella Nmap Scan Container con porte e conteggi
+        if table_type == "nmap-scan-container":
+            index_name = f"{tenant}_scan"
+            query = {
+                "size": 0,
+                "query": {
+                    "bool": {
+                        "filter": [
+                            {
+                                "range": {
+                                    "ts": {
+                                        "gte": "2025-07-24T00:00:00.000Z",
+                                        "lte": "2025-12-31T23:59:59.999Z",
+                                        "format": "strict_date_optional_time"
+                                    }
+                                }
+                            }
+                        ]
+                    }
+                },
+                "aggs": {
+                    "containers": {
+                        "terms": {
+                            "field": "container_name.keyword",
+                            "size": 10,
+                            "order": {"_count": "desc"}
+                        },
+                        "aggs": {
+                            "total_scans": {
+                                "value_count": {
+                                    "field": "container_name.keyword"
+                                }
+                            },
+                            "ports": {
+                                "terms": {
+                                    "field": "id.resp_p",
+                                    "size": 20,
+                                    "order": {"_count": "desc"}
+                                }
+                            }
+                        }
+                    }
+                },
+                "docvalue_fields": [
+                    {"field": "ts", "format": "date_time"}
+                ]
+            }
+
+            response = es.search(index=index_name, body=query, headers=headers)
+            return response
+
+        else:
+            return JSONResponse(status_code=400, content={"error": "Tipo di tabella non supportato"})
+
+    except Exception as e:
+        return JSONResponse(status_code=500, content={"error": str(e)})

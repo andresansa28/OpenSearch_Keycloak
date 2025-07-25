@@ -1,6 +1,6 @@
-import {NgModule} from '@angular/core';
-import {RouterModule} from '@angular/router';
-import { DeploymentComponent } from './page/page.component';
+import { NgModule } from '@angular/core';
+import { RouterModule } from '@angular/router';
+import { DeploymentComponent } from './page/deploy.component';
 
 @NgModule({
   imports: [RouterModule.forChild([

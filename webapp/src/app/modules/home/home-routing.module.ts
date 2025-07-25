@@ -1,6 +1,6 @@
-import {NgModule} from '@angular/core';
-import {RouterModule} from '@angular/router';
-import {HomeComponent} from "./pages/dashboard/home.component";
+import { NgModule } from '@angular/core';
+import { RouterModule } from '@angular/router';
+import { HomeComponent } from "./pages/dashboard/dashboard.component";
 
 @NgModule({
   imports: [RouterModule.forChild([

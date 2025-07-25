@@ -25,6 +25,17 @@ export class AuthService {
     }
   }
 
+  public getToken(): string | null {
+  try {
+    const keycloakInstance = this.keycloakService.getKeycloakInstance();
+    return keycloakInstance?.token || null;
+  } catch (e) {
+    console.error("Errore nel recupero del token", e);
+    return null;
+  }
+}
+
+
   public isLoggedIn(): Promise<boolean> {
     return this.keycloakService.isLoggedIn();
   }

@@ -1,8 +1,7 @@
 import { NgModule } from '@angular/core';
 import { RouterModule, Routes } from '@angular/router';
-import { PageComponent } from './page/page.component';
 import { AuthGuard } from 'src/app/shared/guards/auth.guard';
-import { NgxPermissionsGuard } from 'ngx-permissions';
+import { PageComponent } from './page/usermanager.component';
 
 const routes: Routes = [
   {
@@ -18,7 +17,7 @@ const routes: Routes = [
     children: [
       {
         path: '',
-          component: PageComponent
+        component: PageComponent
       }
     ],
   }

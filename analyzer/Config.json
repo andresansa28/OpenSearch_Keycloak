@@ -7,7 +7,7 @@
   "greynoise_api_key": "5ae9wOgoA9SWXnrY7u1S09drGy509e4MOYnLP39YZ5Pqi3oADIiQMIiBtjfdTW88",
   "RemoteDeployments": [
     {
-      "name": "test_completo",
+      "name": "test",
       "IP": "192.168.161.33",
       "user": "giovanni",
       "passw": "ciao",
@@ -22,14 +22,11 @@
           "name": "plc2"
         },
         {
-          "IP": "172.21.0.2",
-          "name": "scada"
-        },
-        {
           "IP": "10.10.10.180",
-          "name": "scadaMVL"
+          "name": "scada"
         }
-      ]
+      ],
+      "DockerNet": "macvlan_net"
     }
   ]
 }

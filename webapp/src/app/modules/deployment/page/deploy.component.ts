@@ -16,8 +16,8 @@ import {
 
 @Component({
   selector: 'app-deployment',
-  templateUrl: './page.component.html',
-  styleUrls: ['./page.component.scss'],
+  templateUrl: './deploy.component.html',
+  styleUrls: ['./deploy.component.scss'],
 })
 export class DeploymentComponent implements OnInit, OnDestroy {
   button_green: string = 'button_green';
