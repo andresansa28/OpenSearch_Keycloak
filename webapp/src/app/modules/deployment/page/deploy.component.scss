@@ -3,39 +3,39 @@
   margin: 0 auto;
   padding: 2rem;
   min-height: 100vh;
-  /* Background will be inherited from global dark theme */
+  
+  color: var(--neutral-800); // testo principale
 }
 
 .page-header {
   text-align: center;
   margin-bottom: 3rem;
   padding: 2rem 0;
-  /* Styling will be inherited from global theme */
 }
 
 .page-title {
   height: 60px;
   font-size: 2.5rem;
   font-weight: 700;
-  margin: 0 0 0.5rem 0;
-  background: linear-gradient(135deg, #5c6bc0 0%, #26a69a 50%, #42a5f5 100%);
+  margin-bottom: 0.5rem;
+  background: linear-gradient(135deg, var(--primary-500), var(--accent-500), var(--info-500));
+  background-clip: text;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
-  background-clip: text;
-  align-items: center;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
   display: flex;
   justify-content: center;
-  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
+  align-items: center;
 }
 
 .page-subtitle {
   height: 60px;
   font-size: 1.1rem;
   margin: 0;
-  align-items: center;
+  color: var(--neutral-600);
   display: flex;
   justify-content: center;
-  /* Color will be inherited from dark theme */
+  align-items: center;
 }
 
 .container {
@@ -47,9 +47,16 @@
 .config-card,
 .deployment-card,
 .deployments-list-card {
+  background-color: var(--neutral-50);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow);
+  border: 1px solid var(--neutral-200);
   margin-bottom: 2rem;
-  border-radius: 12px;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
+}
+
+.config-card:hover {
+  box-shadow: var(--shadow-md);
 }
 
 .config-grid {
@@ -59,30 +66,25 @@
   margin-top: 1rem;
 }
 
-.config-column {
+.config-column,
+.analyzer-column {
   display: flex;
   flex-direction: column;
   gap: 1rem;
 }
 
-.analyzer-column {
-  display: flex;
-  flex-direction: column;
-}
-
 .analyzer-card {
   height: 100%;
-  border: 2px solid #e0e0e0;
+  border: 2px solid var(--neutral-200);
+  border-radius: var(--radius);
+  background-color: var(--neutral-50);
 }
 
-.analyzer-status {
+.analyzer-status,
+.analyzer-button {
   margin-bottom: 1rem;
   display: flex;
   justify-content: center;
-}
-
-.analyzer-button {
-  margin-bottom: 1rem;
 }
 
 .analyzer-controls {
@@ -90,15 +92,9 @@
   gap: 1rem;
 }
 
-.control-button {
-  flex: 1;
-}
-
-.full-width {
-  width: 100%;
-}
-
+.control-button,
 .config-button {
+  flex: 1;
   margin-bottom: 1rem;
 }
 
@@ -120,14 +116,17 @@
   margin-top: 1rem;
 }
 
-.plc-section {
+.plc-section,
+.plc-list,
+.review-section,
+.review-card {
   margin-bottom: 1rem;
 }
 
 .plc-list {
-  margin-bottom: 1rem;
-  border: 1px solid #e0e0e0;
-  border-radius: 8px;
+  border: 1px solid var(--neutral-200);
+  border-radius: var(--radius);
+  background-color: var(--neutral-50);
 }
 
 .add-plc-form {
@@ -142,25 +141,24 @@
 }
 
 .upload-area {
-  border: 2px dashed #ddd;
-  border-radius: 8px;
+  border: 2px dashed var(--neutral-300);
+  border-radius: var(--radius);
+  background-color: var(--neutral-50);
   padding: 2rem;
   margin: 1rem 0;
   transition: all 0.3s ease;
   cursor: pointer;
-}
 
-.upload-area:hover,
-.upload-area.drag-over {
-  border-color: #3f51b5;
-  background-color: #f5f5f5;
+  &:hover,
+  &.drag-over {
+    border-color: var(--primary-500);
+    background-color: var(--neutral-100);
+  }
 }
 
 .upload-icon {
   font-size: 48px;
-  height: 48px;
-  width: 48px;
-  color: #999;
+  color: var(--neutral-400);
   margin-bottom: 1rem;
 }
 
@@ -168,19 +166,10 @@
   margin-top: 1rem;
 }
 
-.review-section {
-  margin-bottom: 1rem;
-}
-
-.review-card {
-  margin-bottom: 1rem;
-}
-
 .review-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
   gap: 1rem;
-  margin-bottom: 1rem;
 }
 
 .review-item {
@@ -192,20 +181,19 @@
 .plc-preview {
   margin-top: 1rem;
   padding-top: 1rem;
-  border-top: 1px solid #e0e0e0;
+  border-top: 1px solid var(--neutral-200);
 }
 
 .no-devices {
   text-align: center;
   padding: 2rem;
-  color: #666;
-}
+  color: var(--neutral-600);
 
-.no-devices mat-icon {
-  font-size: 48px;
-  height: 48px;
-  width: 48px;
-  margin-bottom: 1rem;
+  mat-icon {
+    font-size: 48px;
+    color: var(--neutral-400);
+    margin-bottom: 1rem;
+  }
 }
 
 .deployments-grid {
@@ -224,61 +212,48 @@
   align-items: center !important;
   justify-content: center !important;
   text-align: center !important;
+  background-color: var(--neutral-50);
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+  }
+
+  &.selected {
+    border-color: var(--primary-500);
+    box-shadow: var(--shadow-lg);
+  }
+
+  .mat-mdc-card-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    width: 100%;
+  }
+
+  h3, h4, p,
+  .mat-mdc-card-title,
+  .mat-mdc-card-subtitle {
+    text-align: center;
+    margin: 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+  }
 }
 
-.deployment-item:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
-}
-
-.deployment-item.selected {
-  border-color: #3f51b5;
-  transform: translateY(-2px);
-  box-shadow: 0 6px 12px rgba(63, 81, 181, 0.3);
-}
-
-/* Perfect centering for deployment card content */
-.deployment-item .mat-mdc-card-content {
-  display: flex !important;
-  flex-direction: column !important;
-  align-items: center !important;
-  justify-content: center !important;
-  text-align: center !important;
-  width: 100% !important;
-  gap: 16px !important;
-}
-
-/* Center all text elements in deployment cards */
-.deployment-item h3,
-.deployment-item h4,
-.deployment-item p,
-.deployment-item .mat-mdc-card-title,
-.deployment-item .mat-mdc-card-subtitle {
-  text-align: center !important;
-  margin: 0 auto !important;
-  display: flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  width: 100% !important;
-}
-
-.deployment-title {
-  display: flex;
-  align-items: center;
-  justify-content: center !important;
-  gap: 8px;
-  text-align: center !important;
-  width: 100% !important;
-}
-
+.deployment-title,
 .deployment-info {
-  margin-bottom: 1rem;
-  display: flex !important;
-  flex-direction: column !important;
-  align-items: center !important;
-  justify-content: center !important;
-  text-align: center !important;
-  width: 100% !important;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  width: 100%;
 }
 
 .deployment-details {
@@ -298,18 +273,13 @@
   }
 }
 
+/* Responsive */
 @media (max-width: 768px) {
-  .config-grid {
-    grid-template-columns: 1fr;
-    gap: 1rem;
-  }
-
-  .form-grid {
-    grid-template-columns: 1fr;
-  }
-
+  .config-grid,
+  .form-grid,
   .add-plc-form {
     grid-template-columns: 1fr;
+    gap: 1rem;
   }
 
   .analyzer-controls {
@@ -321,43 +291,32 @@
   }
 }
 
-/* Custom Snackbar Styles */
+/* Snackbars */
 ::ng-deep .success-snackbar {
-  background-color: #4caf50 !important;
+  background-color: var(--success-500) !important;
   color: white !important;
-
-  .mat-mdc-simple-snack-bar-action {
-    color: white !important;
-  }
 }
 
 ::ng-deep .info-snackbar {
-  background-color: #2196f3 !important;
+  background-color: var(--info-500) !important;
   color: white !important;
-
-  .mat-mdc-simple-snack-bar-action {
-    color: white !important;
-  }
 }
 
 ::ng-deep .warning-snackbar {
-  background-color: #ff9800 !important;
+  background-color: var(--warning-500) !important;
   color: white !important;
-
-  .mat-mdc-simple-snack-bar-action {
-    color: white !important;
-  }
 }
 
 ::ng-deep .error-snackbar {
-  background-color: #f44336 !important;
+  background-color: var(--error-500) !important;
   color: white !important;
-
-  .mat-mdc-simple-snack-bar-action {
-    color: white !important;
-  }
 }
 
+::ng-deep .mat-mdc-simple-snack-bar-action {
+  color: white !important;
+}
+
+/* Chip centrati */
 ::ng-deep .mdc-evolution-chip-set__chips {
   display: flex;
   justify-content: center;

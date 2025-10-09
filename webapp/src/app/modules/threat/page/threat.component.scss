@@ -200,20 +200,20 @@
 
         // ===== STILI ELEMENTI CELLA =====
         .timestamp {
-            color: var(--threat-text-white);
+            color: var(--threat-text-primary);
             font-family: inherit;
             font-size: var(--threat-font-md);
             font-weight: 500;
         }
 
         .ip-address {
-            color: var(--threat-text-white);
+            color: var(--threat-text-primary);
             font-family: inherit;
             font-weight: normal;
         }
 
         .mac-address {
-            color: var(--threat-text-white);
+            color: var(--threat-text-primary);
             font-family: inherit;
             font-weight: normal;
             text-transform: uppercase;
@@ -221,7 +221,7 @@
 
         .message-text {
             font-weight: bold;
-            color: var(--threat-text-white);
+            color: var(--threat-text-primary);
             background-color: transparent;
             padding: 0;
             border-radius: 0;
@@ -229,42 +229,6 @@
             text-align: center;
         }
 
-        // ===== CONTAINER PAYLOAD =====
-        .payload-container {
-            max-height: var(--threat-payload-max-height);
-            overflow-y: auto;
-            text-align: left;
-
-            .payload-chunk {
-                margin-bottom: var(--threat-spacing-xs);
-                display: flex;
-                align-items: center;
-                gap: var(--threat-spacing-sm);
-
-                .chunk-index {
-                    color: var(--threat-text-secondary);
-                    font-size: var(--threat-font-xs);
-                    min-width: var(--threat-spacing-xl);
-                }
-
-                .payload-hex {
-                    background-color: var(--threat-bg-payload);
-                    color: var(--threat-accent-color);
-                    padding: 2px 6px;
-                    border-radius: var(--threat-border-radius);
-                    font-family: 'Courier New', monospace;
-                    font-size: var(--threat-font-sm);
-                    word-break: break-all;
-                    flex-grow: 1;
-                }
-            }
-
-            .no-payload {
-                color: var(--threat-text-muted);
-                font-style: italic;
-                text-align: center;
-            }
-        }
     }
 
     // ===== RIGHE TABELLA =====
@@ -313,7 +277,7 @@
 
 // ===== STILI COMPONENTI MATERIAL =====
 .mat-mdc-paginator-container {
-    background-color: var(--threat-bg-paginator);
+    background-color: var(--threat-bg-light);
 }
 
 // ===== RESPONSIVE DESIGN =====

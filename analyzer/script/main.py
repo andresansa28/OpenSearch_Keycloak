@@ -208,6 +208,39 @@ def get_pcap(scheduler):
         logging.exception("Errore durante l'esecuzione di get_pcap")
         running = False  # FERMA il ciclo
 
+def get_pcap_offline(scheduler):
+    """
+    Modalità OFFLINE:
+    - NON esegue SSH/capture.sh
+    - Analizza i PCAP già presenti in pcapPath/*
+    - Replica la logica di scheduler della versione online
+    """
+    global running, event, delay
+
+    if not running:
+        logging.info("Scheduler interrotto, uscita dal ciclo get_pcap_offline")
+        return
+
+    logging.info("Modalità OFFLINE attiva — inizio analisi dei PCAP locali")
+
+    try:
+        # Analisi locale dei PCAP: zeek + bulk_load indicizzazione
+        run_zeek()
+        logging.info("Analisi completata (offline)")
+
+        # Se tutto ok e il servizio è ancora attivo, riprogramma il prossimo giro
+        if running:
+            event = scheduler.enter(delay, 1, get_pcap_offline, (scheduler,))
+            logging.info(f"Scheduler (offline) riprogrammato tra {delay}s")
+
+    except Exception:
+        logging.exception("Errore durante l'analisi offline; fermo lo scheduler")
+        running = False  # ferma il ciclo in caso di errore grave
+
+
+
+
+
 def generate_zeek_table_to_file(docker_nets: list, remote_host, filename="trusted_macs.zeek", table_name="trusted_devices"):
     hosts = {}
     for network in docker_nets:
@@ -532,7 +565,7 @@ def start_service():
         return "Service already running"
     running = True
     write_trusted_ips()
-    event = my_scheduler.enter(0, 1, get_pcap, (my_scheduler,))
+    event = my_scheduler.enter(0, 1, get_pcap_offline, (my_scheduler,))
     threading.Thread(target=my_scheduler.run, daemon=True).start()
     return "Service started"
 

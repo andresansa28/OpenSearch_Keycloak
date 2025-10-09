@@ -38,14 +38,19 @@ export class OpenSearchService {
     return this.httpClient.get(this.url + "/api/modbus_dos", { params: queryParams });
   }
 
-getScanNmap(tenant: string) {
-  const body = {
-    tenant: tenant,
-    tableType: 'nmap-scan-container'
-  };
+  getTable(tenant: string, id: string, timeRange?: { from: string; to: string }) {
+    const body: any = {
+      tenant: tenant,
+      tableType: id
+    };
 
-  return this.httpClient.post(this.url + '/api/table', body);
-}
+    // Aggiungi il range temporale se fornito
+    if (timeRange) {
+      body.timeRange = timeRange;
+    }
+
+    return this.httpClient.post(this.url + '/api/table', body);
+  }
 
 
 

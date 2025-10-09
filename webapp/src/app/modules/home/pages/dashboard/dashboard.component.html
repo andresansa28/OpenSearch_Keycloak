@@ -1,38 +1,220 @@
-<div *ngIf="loading" style="text-align:center; margin:2em;">
-  <mat-spinner></mat-spinner>
-</div>
+<div class="dashboard-container">
+  <!-- Selezione Tenant e Range Temporale -->
+  <mat-card class="tenant-selection-card">
+    <mat-card-header>
+      <mat-card-title>
+        <mat-icon>security</mat-icon>
+        Configurazione Dashboard
+      </mat-card-title>
+      <mat-card-subtitle>Seleziona tenant e arco temporale per l'analisi</mat-card-subtitle>
+    </mat-card-header>
+    <mat-card-content>
+      <div class="config-row">
+        <!-- Selezione Tenant -->
+        <mat-form-field appearance="outline" class="tenant-select">
+          <mat-label>Seleziona Tenant</mat-label>
+          <mat-select [(value)]="selectedTenant" (selectionChange)="selectTenant($event.value)">
+            <mat-option *ngFor="let tenant of tenants" [value]="tenant">
+              {{tenant}}
+            </mat-option>
+          </mat-select>
+        </mat-form-field>
 
-<div *ngIf="!loading">
-  <table mat-table [dataSource]="dataSource" class="mat-elevation-z2" style="width:100%;">
+        <!-- Selezione Range Temporale -->
+        <mat-form-field appearance="outline" class="time-range-select" *ngIf="selectedTenant">
+          <mat-label>Arco Temporale</mat-label>
+          <mat-select [(value)]="selectedTimeRange" (selectionChange)="onTimeRangeChange($event.value)">
+            <mat-option *ngFor="let range of predefinedTimeRanges" [value]="range.value">
+              <mat-icon>{{range.value === 'custom' ? 'event' : 'schedule'}}</mat-icon>
+              {{range.label}}
+            </mat-option>
+          </mat-select>
+        </mat-form-field>
+      </div>
 
-    <!-- Container Name -->
-    <ng-container matColumnDef="container">
-      <th mat-header-cell *matHeaderCellDef>Container</th>
-      <td mat-cell *matCellDef="let row">{{ row.container }}</td>
-    </ng-container>
+      <!-- Range Temporale Personalizzato -->
+      <div class="custom-time-range" *ngIf="isCustomTimeRange && selectedTenant">
+        <mat-card class="custom-range-card">
+          <mat-card-header>
+            <mat-card-title>
+              <mat-icon>date_range</mat-icon>
+              Range Temporale Personalizzato
+            </mat-card-title>
+          </mat-card-header>
+          <mat-card-content>
+            <div class="date-range-inputs">
+              <mat-form-field appearance="outline">
+                <mat-label>Data e Ora Inizio</mat-label>
+                <input matInput type="datetime-local" [(ngModel)]="customTimeRange.from">
+                <mat-icon matSuffix>event</mat-icon>
+              </mat-form-field>
 
-    <!-- Ports -->
-    <ng-container matColumnDef="ports">
-      <th mat-header-cell *matHeaderCellDef>Porte scansionate (conteggio)</th>
-      <td mat-cell *matCellDef="let row">
-        <ng-container *ngIf="row.ports.length; else noPorts">
-          <span *ngFor="let p of row.ports; let last = last">
-            <b>{{p.port}}</b> ({{p.count}}) <span *ngIf="!last">, </span>
-          </span>
-        </ng-container>
-        <ng-template #noPorts><i>Nessuna</i></ng-template>
-      </td>
-    </ng-container>
+              <mat-form-field appearance="outline">
+                <mat-label>Data e Ora Fine</mat-label>
+                <input matInput type="datetime-local" [(ngModel)]="customTimeRange.to">
+                <mat-icon matSuffix>event</mat-icon>
+              </mat-form-field>
 
-    <!-- Total Scans -->
-    <ng-container matColumnDef="totalScans">
-      <th mat-header-cell *matHeaderCellDef>Scansioni totali</th>
-      <td mat-cell *matCellDef="let row">{{ row.totalScans }}</td>
-    </ng-container>
+              <button mat-raised-button color="primary" (click)="applyCustomTimeRange()">
+                <mat-icon>check</mat-icon>
+                Applica
+              </button>
+            </div>
+          </mat-card-content>
+        </mat-card>
+      </div>
+    </mat-card-content>
 
-    <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
-    <tr mat-row *matRowDef="let row; columns: displayedColumns"></tr>
-  </table>
+    <mat-card class="view-selection-card" *ngIf="selectedTenant">
+      <mat-card-header>
+        <mat-card-title>
+          <mat-icon>visibility</mat-icon>
+          Tipo di Visualizzazione
+        </mat-card-title>
+        <mat-card-subtitle>Scegli tra dati tabellari o rappresentazione grafica</mat-card-subtitle>
+      </mat-card-header>
 
-  <mat-paginator [pageSizeOptions]="[5, 10, 20]" showFirstLastButtons></mat-paginator>
+      <mat-card-content>
+        <mat-button-toggle-group [(ngModel)]="viewMode" appearance="legacy" class="view-toggle" exclusive>
+          <mat-button-toggle value="top10">
+            <mat-icon>format_list_numbered</mat-icon>
+            Top 10
+          </mat-button-toggle>
+          <mat-button-toggle value="graphics">
+            <mat-icon>insert_chart</mat-icon>
+            Grafici
+          </mat-button-toggle>
+        </mat-button-toggle-group>
+      </mat-card-content>
+    </mat-card>
+
+    <!-- CONTENUTO CONDIZIONALE -->
+    <div class="view-mode-content" *ngIf="selectedTenant">
+      <ng-container [ngSwitch]="viewMode">
+        <!-- Modalità Top 10 -->
+        <div *ngSwitchCase="'top10'" class="top10-mode">
+          <!-- Selezione Top 10 disponibili -->
+          <mat-card class="selection-card">
+            <mat-card-header>
+              <mat-card-title>
+                <mat-icon>format_list_numbered</mat-icon>
+                Top 10 Disponibili
+              </mat-card-title>
+              <mat-card-subtitle>Seleziona le analisi Top 10 che desideri visualizzare</mat-card-subtitle>
+            </mat-card-header>
+            <mat-card-content>
+              <div class="chips-container">
+                <mat-chip-set aria-label="Top 10 selection">
+                  <mat-chip *ngFor="let table of availableTop10Tables"
+                    [class.selected-chip]="isTop10ItemSelected(table.id)" (click)="toggleTop10Item(table.id)"
+                    color="primary">
+                    <mat-icon>{{isTop10ItemSelected(table.id) ? 'check_circle' : 'radio_button_unchecked'}}</mat-icon>
+                    {{table.name}}
+                  </mat-chip>
+                </mat-chip-set>
+              </div>
+            </mat-card-content>
+          </mat-card>
+        </div>
+
+        <!-- Modalità Grafici -->
+        <div *ngSwitchCase="'graphics'" class="graphics-mode">
+          <!-- Selezione Grafici disponibili -->
+          <mat-card class="selection-card">
+            <mat-card-header>
+              <mat-card-title>
+                <mat-icon>insert_chart</mat-icon>
+                Grafici Disponibili
+              </mat-card-title>
+              <mat-card-subtitle>Seleziona i grafici che desideri visualizzare</mat-card-subtitle>
+            </mat-card-header>
+            <mat-card-content>
+              <div class="chips-container">
+                <mat-chip-set aria-label="Graphics selection">
+                  <mat-chip *ngFor="let chart of availableGraphics"
+                    [class.selected-chip]="isGraphicsItemSelected(chart.id)" (click)="toggleGraphicsItem(chart.id)"
+                    color="accent">
+                    <mat-icon>{{isGraphicsItemSelected(chart.id) ? 'check_circle' :
+                      'radio_button_unchecked'}}</mat-icon>
+                    {{chart.name}}
+                  </mat-chip>
+                </mat-chip-set>
+              </div>
+            </mat-card-content>
+          </mat-card>
+        </div>
+      </ng-container>
+    </div>
+  </mat-card>
+
+  <!-- CONTAINER SEPARATO PER LE CARD SELEZIONATE -->
+    <div class="results-section"
+      *ngIf="selectedTenant && (selectedTop10Items.length > 0 || selectedGraphicsItems.length > 0)">
+
+      <!-- Container Top 10 Results -->
+      <div class="selected-items-container" *ngIf="viewMode === 'top10' && selectedTop10Items.length > 0">
+        <div class="container-header">
+          <h3>
+            <mat-icon>analytics</mat-icon>
+            Analisi Top 10 Selezionate
+          </h3>
+          <p>{{selectedTop10Items.length}} analisi attive</p>
+        </div>
+        <div class="data-cards-grid">
+          <mat-card *ngFor="let table of getSelectedTop10Tables()" class="data-card top10-card">
+            <mat-card-header style="justify-content: space-around;">
+              <div mat-card-avatar class="card-avatar">
+                <mat-icon>analytics</mat-icon>
+              </div>
+              <mat-card-title>{{table.name}}</mat-card-title>
+              <mat-card-subtitle>{{table.description}}</mat-card-subtitle>
+              <button mat-icon-button class="card-close-btn" (click)="toggleTop10Item(table.id)" matTooltip="Rimuovi">
+                <mat-icon>close</mat-icon>
+              </button>
+            </mat-card-header>
+            <mat-card-content>
+              <app-top10 [tenant]="selectedTenant" [timeRange]="getCurrentTimeRange()" [id]="table.id">
+              </app-top10>
+            </mat-card-content>
+          </mat-card>
+        </div>
+      </div>
+
+      <!-- Container Graphics Results -->
+      <div class="selected-items-container" *ngIf="viewMode === 'graphics' && selectedGraphicsItems.length > 0">
+        <div class="container-header">
+          <h3>
+            <mat-icon>insert_chart</mat-icon>
+            Grafici Selezionati
+          </h3>
+          <p>{{selectedGraphicsItems.length}} grafici attivi</p>
+        </div>
+        <div class="data-cards-grid">
+          <mat-card *ngFor="let chart of getSelectedGraphics()" class="data-card graphics-card">
+            <mat-card-header style="justify-content: space-around;">
+              <div mat-card-avatar class="card-avatar graphics-avatar">
+                <mat-icon>bar_chart</mat-icon>
+              </div>
+              <mat-card-title>{{chart.name}}</mat-card-title>
+              <mat-card-subtitle>{{chart.description}}</mat-card-subtitle>
+              <button mat-icon-button class="card-close-btn" (click)="toggleGraphicsItem(chart.id)"
+                matTooltip="Rimuovi">
+                <mat-icon>close</mat-icon>
+              </button>
+            </mat-card-header>
+            <mat-card-content>
+              <div class="placeholder-chart">
+                <mat-icon class="placeholder-icon">insert_chart</mat-icon>
+                <p>Grafico non ancora implementato</p>
+                <small>ID: {{chart.id}}</small>
+              </div>
+            </mat-card-content>
+          </mat-card>
+        </div>
+      </div>
+
+    </div>
+
+
+
 </div>

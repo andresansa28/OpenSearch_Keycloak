@@ -18,6 +18,7 @@ from starlette.responses import JSONResponse
 sys.path.append(os.path.abspath("../code/app/"))
 import sslpatch, osQueryFile, dataFunctions
 
+
 with sslpatch.no_ssl_verification():
     idp = FastAPIKeycloak(
         server_url="https://172.17.0.1:8443/auth",
@@ -61,6 +62,10 @@ def checkTokenAndRoleValidity(token, role):
 
 app = FastAPI()
 idp.add_swagger_config(app)
+
+
+from routers import table
+app.include_router(table.router)
 
 origins = [
     "http://localhost",
@@ -496,72 +501,3 @@ def get_modbus_dos_index(tenant):
         print(f"Errore OpenSearch: {e}")
         return None
 
-
-@app.post("/api/table")
-async def get_table_data(request: Request):
-    try:
-        body = await request.json()
-        tenant = body.get("tenant")
-        table_type = body.get("tableType")
-
-        if not tenant or not table_type:
-            return JSONResponse(status_code=400, content={"error": "Tenant e tipo tabella sono obbligatori"})
-
-        headers = {"security_tenant": tenant}
-
-        # Tabella Nmap Scan Container con porte e conteggi
-        if table_type == "nmap-scan-container":
-            index_name = f"{tenant}_scan"
-            query = {
-                "size": 0,
-                "query": {
-                    "bool": {
-                        "filter": [
-                            {
-                                "range": {
-                                    "ts": {
-                                        "gte": "2025-07-24T00:00:00.000Z",
-                                        "lte": "2025-12-31T23:59:59.999Z",
-                                        "format": "strict_date_optional_time"
-                                    }
-                                }
-                            }
-                        ]
-                    }
-                },
-                "aggs": {
-                    "containers": {
-                        "terms": {
-                            "field": "container_name.keyword",
-                            "size": 10,
-                            "order": {"_count": "desc"}
-                        },
-                        "aggs": {
-                            "total_scans": {
-                                "value_count": {
-                                    "field": "container_name.keyword"
-                                }
-                            },
-                            "ports": {
-                                "terms": {
-                                    "field": "id.resp_p",
-                                    "size": 20,
-                                    "order": {"_count": "desc"}
-                                }
-                            }
-                        }
-                    }
-                },
-                "docvalue_fields": [
-                    {"field": "ts", "format": "date_time"}
-                ]
-            }
-
-            response = es.search(index=index_name, body=query, headers=headers)
-            return response
-
-        else:
-            return JSONResponse(status_code=400, content={"error": "Tipo di tabella non supportato"})
-
-    except Exception as e:
-        return JSONResponse(status_code=500, content={"error": str(e)})
