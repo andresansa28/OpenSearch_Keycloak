@@ -58,7 +58,7 @@ def upload_dashboards(es, tenant):
 
             if "index-pattern" in i["_id"]:
                 ids = (i["_id"].split(":")[1])
-                r = requests.delete('https://172.17.0.1:5601/api/saved_objects/index-pattern/' + ids, verify=False,
+                r = requests.delete('https://dashboards:5601/api/saved_objects/index-pattern/' + ids, verify=False,
                                     auth=HTTPBasicAuth('admin', 'admin'), headers=headers)
 
         headers = {'osd-xsrf': 'true',
@@ -67,7 +67,7 @@ def upload_dashboards(es, tenant):
                    }
 
         for id in tqdm(v_id):
-            r = requests.get("https://172.17.0.1:5601/api/saved_objects/visualization/" + str(id), verify=False,
+            r = requests.get("https://dashboards:5601/api/saved_objects/visualization/" + str(id), verify=False,
                              auth=HTTPBasicAuth('admin', 'admin'), headers=headers)
             resp = r.json()
             for r in resp["references"]:
