@@ -47,5 +47,6 @@ rm certs/os/os-temp.key certs/os/os.csr
 rm certs/os-dashboards/os-dashboards-temp.key certs/os-dashboards/os-dashboards.csr
 
 # Adjusting permissions
-chmod 700 certs/{ca,os-dashboards,os}
-chmod 600 certs/{ca/*,os-dashboards/*,os/*}
+sudo chown -R 1000:1000 certs
+chmod 755 certs/{ca,os-dashboards,os}
+chmod 644 certs/{ca/,os-dashboards/,os/*}
