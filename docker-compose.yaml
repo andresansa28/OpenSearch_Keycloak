@@ -14,6 +14,11 @@ services:
       KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD}
       KC_HTTPS_CERTIFICATE_FILE: /etc/x509/https/tls.crt
       KC_HTTPS_CERTIFICATE_KEY_FILE: /etc/x509/https/tls.key
+      KC_HOSTNAME: keycloak.localhost
+      KC_HOSTNAME_PORT: "8443"
+      KC_HOSTNAME_STRICT: "false"
+      KC_HOSTNAME_STRICT_HTTPS: "false"
+      KC_PROXY: edge
    
     volumes:
       - ./certs/keycloak:/etc/x509/https
@@ -113,13 +118,18 @@ services:
 
   webapp:
     build:
-      context: ./webapp
+      context: ./my-dashboard
       dockerfile: Dockerfile.dev
     volumes:
-      - ./webapp:/app
+      - ./my-dashboard:/app
       - /app/node_modules
     ports:
-      - "4200:4200"
+      - "3000:3000"
+    environment:
+      - CHOKIDAR_USEPOLLING=true
+      - WATCHPACK_POLLING=true
+    tty: true
+    stdin_open: true
     networks:
       framework:
         ipv4_address: 172.18.0.8

@@ -10,7 +10,7 @@ import time
 app = FastAPI()
 
 origins = [
-    "http://172.17.0.1:4200/**",
+    "http://webapp:3000/**",
 ]
 
 app.add_middleware(
@@ -190,6 +190,41 @@ async def check_deployments():
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
+    
+@app.get("/checkSingleDeployment/{ip}")
+async def check_single_deployment(ip: str):
+    try:
+        # Leggi la configurazione
+        with open("./Config.json", 'r') as file:
+            config = json.load(file)
+
+        # Cerca il deployment corrispondente all'IP
+        deployment = next((d for d in config.get("RemoteDeployments", []) if d.get("IP") == ip), None)
+
+        if not deployment:
+            raise HTTPException(status_code=404, detail=f"Deployment con IP {ip} non trovato")
+
+        name = deployment.get("name", ip)
+
+        # Esegui un ping singolo con timeout di 1 secondo
+        result = subprocess.run(
+            ["ping", "-c", "1", "-W", "1", ip],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL
+        )
+
+        online = result.returncode == 0
+
+        return {
+            "name": name,
+            "ip": ip,
+            "online": online
+        }
+
+    except FileNotFoundError:
+        raise HTTPException(status_code=500, detail="File di configurazione Config.json non trovato")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Errore durante il controllo del deployment: {str(e)}")
 
 @app.get("/rebootAnalyzer/{ip}")
 async def rebootAnalyzer(ip: str):

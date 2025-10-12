@@ -1,57 +1,9 @@
 {
-  "opensearch_configured": "True",
+  "opensearch_configured": "False",
   "MaxMind_GeoDB_Key": "",
   "pcapFolder": "pcaps/",
   "delay": 40,
   "zeek_path": "/usr/local/zeek/bin/zeek",
   "greynoise_api_key": "5ae9wOgoA9SWXnrY7u1S09drGy509e4MOYnLP39YZ5Pqi3oADIiQMIiBtjfdTW88",
-  "RemoteDeployments": [
-    {
-      "name": "prova",
-      "IP": "10.106.236.57",
-      "user": "andre28",
-      "passw": "1234",
-      "active": true,
-      "Containers": [
-        {
-          "IP": "192.168.10.178",
-          "name": "plc1"
-        },
-        {
-          "IP": "192.168.10.179",
-          "name": "PLC2"
-        },
-        {
-          "IP": "192.168.10.180",
-          "name": "scada"
-        }
-      ]
-    },
-    {
-      "name": "honeyics-asia",
-      "IP": "1234",
-      "user": "andrea",
-      "passw": "1234",
-      "active": true,
-      "Containers": [
-        {
-          "name": "hmi",
-          "IP": "10.10.10.10"
-        }
-      ]
-    },
-    {
-      "name": "honeyics-eu",
-      "IP": "1234",
-      "user": "andrea",
-      "passw": "1234",
-      "active": true,
-      "Containers": [
-        {
-          "name": "hmi",
-          "IP": "10.10.20.10"
-        }
-      ]
-    }
-  ]
+  "RemoteDeployments": []
 }

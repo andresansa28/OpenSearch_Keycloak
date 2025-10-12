@@ -6,7 +6,8 @@ certs/
 .done
 
 # Esclude il contenuto della cartella analyzer/script/pcaps
-analyzer/script/pcaps/
+analyzer/script/pcaps/*
+my-dashboard/node_modules/
 
 # File temporanei e di sistema
 .DS_Store
@@ -21,7 +22,7 @@ Thumbs.db
 
 # File di configurazione locale che potrebbero contenere informazioni sensibili
 *.local
-*.env
+
 .env.local
 .env.development.local
 .env.test.local

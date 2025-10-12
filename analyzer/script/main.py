@@ -52,7 +52,7 @@ logging.getLogger("uvicorn.access").addFilter(IgnoreStatusRoute())
 # ------------------------
 auth = ('admin', 'admin')
 es = OpenSearch(
-    [{'host': '172.17.0.1', 'port': 9200}],
+    [{'host': 'os01', 'port': 9200}],
     http_auth=auth,
     use_ssl=True,
     verify_certs=False,
@@ -564,8 +564,8 @@ def start_service():
     if running:
         return "Service already running"
     running = True
-    write_trusted_ips()
-    event = my_scheduler.enter(0, 1, get_pcap_offline, (my_scheduler,))
+    #write_trusted_ips()
+    event = my_scheduler.enter(0, 1, get_pcap, (my_scheduler,))
     threading.Thread(target=my_scheduler.run, daemon=True).start()
     return "Service started"
 

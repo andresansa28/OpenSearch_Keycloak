@@ -30,12 +30,12 @@ def upload_dashboards(es, tenant):
     file = {
         'file': open('DashBoards/graphicdash.ndjson', 'rb')
     }
-    r1 = requests.post("https://172.17.0.1:5601/api/saved_objects/_import", verify=False,
+    r1 = requests.post("https://dashboards:5601/api/saved_objects/_import", verify=False,
                        auth=HTTPBasicAuth('admin', 'admin'), headers=headers, files=file)
     file = {
         'file': open('DashBoards/tabulardash.ndjson', 'rb')
     }
-    r2 = requests.post("https://172.17.0.1:5601/api/saved_objects/_import", verify=False,
+    r2 = requests.post("https://dashboards:5601/api/saved_objects/_import", verify=False,
                        auth=HTTPBasicAuth('admin', 'admin'), headers=headers, files=file)
 
     if r1.json()["success"] and r2.json()["success"]:

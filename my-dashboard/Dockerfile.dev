@@ -1,0 +1,27 @@
+# Dockerfile.dev (per sviluppo)
+FROM node:22-alpine3.20
+
+# Evita permessi root su npm e migliora caching
+WORKDIR /app
+
+# Copia solo i manifest per sfruttare la cache dei layer
+COPY package*.json ./
+
+# Installa dipendenze in modo deterministico
+# (usa npm ci: fallisce se manca package-lock.json)
+RUN npm ci
+
+# Copia il resto del codice
+COPY . .
+
+
+EXPOSE 3000
+
+# Per file-watching affidabile in VM/Windows
+ENV CHOKIDAR_USEPOLLING=true
+ENV WATCHPACK_POLLING=true
+
+# Avvia il dev server accessibile dall'host
+# --host 0.0.0.0: necessario per raggiungere il server dall'esterno del container
+# --port 5173: opzionale se vuoi forzare la porta
+CMD ["npm", "run", "dev", "--", "--host", "0.0.0.0", "--port", "3000"]

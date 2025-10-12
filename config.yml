@@ -21,7 +21,7 @@ config:
           type: openid
           challenge: false
           config:
-            openid_connect_url: https://172.17.0.1:8443/auth/realms/ICSConsole/.well-known/openid-configuration
+            openid_connect_url: https://keycloak:8443/auth/realms/ICSConsole/.well-known/openid-configuration
             subject_key: preferred_username
             roles_key: groups
             openid_connect_idp:

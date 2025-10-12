@@ -21,7 +21,7 @@ import sslpatch, osQueryFile, dataFunctions
 
 with sslpatch.no_ssl_verification():
     idp = FastAPIKeycloak(
-        server_url="https://172.17.0.1:8443/auth",
+        server_url="https://keycloak:8443/auth",
         client_id="fastAPI",
         client_secret="secret",
         admin_client_secret="secret",
@@ -35,7 +35,7 @@ auth = ('admin', 'admin')  # For testing only. Don't store credentials in code.
 ca_certs_path = '../code/app/ca/admin.pem'  # Provide a CA bundle if you use intermediate CAs with your root CA.
 
 es = OpenSearch(
-    [{'host': '172.17.0.1', 'port': 9200}],
+    [{'host': 'os01', 'port': 9200}],
     http_auth=auth,
     use_ssl=True,
     verify_certs=False,
@@ -70,6 +70,7 @@ app.include_router(table.router)
 origins = [
     "http://localhost",
     "http://localhost:4200",
+    "http://localhost:3000",
     "http://localhost:5000",
     "http://localhost:5002",
     "http://172.17.0.1:5000",

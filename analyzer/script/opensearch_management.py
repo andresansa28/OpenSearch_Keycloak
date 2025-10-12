@@ -65,7 +65,7 @@ def create_index_pattern(index_pattern_name, with_time_field):
                 "timeFieldName": "ts"
             },
         }
-        r = requests.post("https://172.17.0.1:5601/api/saved_objects/index-pattern/" + index_pattern_name, verify=False,
+        r = requests.post("https://dashboards:5601/api/saved_objects/index-pattern/" + index_pattern_name, verify=False,
                           auth=HTTPBasicAuth('admin', 'admin'), data=json.dumps(payload), headers=headers)
     else:
         payload = {
@@ -73,14 +73,14 @@ def create_index_pattern(index_pattern_name, with_time_field):
                 "title": "%s" % index_pattern_name
             },
         }
-        r = requests.post("https://172.17.0.1:5601/api/saved_objects/index-pattern/" + index_pattern_name, verify=False,
+        r = requests.post("https://dashboards:5601/api/saved_objects/index-pattern/" + index_pattern_name, verify=False,
                           auth=HTTPBasicAuth('admin', 'admin'), data=json.dumps(payload), headers=headers)
     return r
 
 
 def opensearch_first_setup(es, vm_hosts):
     for vm in vm_hosts:
-        r = requests.get("https://172.17.0.1:9200/_plugins/_security/api/tenants/" + vm["name"], verify=False,
+        r = requests.get("https://os01:9200/_plugins/_security/api/tenants/" + vm["name"], verify=False,
                          auth=HTTPBasicAuth('admin', 'admin'))
 
         tenant = vm["name"]
@@ -90,14 +90,14 @@ def opensearch_first_setup(es, vm_hosts):
             headers = {'osd-xsrf': 'true',
                        'Content-Type': 'application/json'}
             payload = {"description": "A tenant for the human resources team."}
-            r = requests.put("https://172.17.0.1:9200/_plugins/_security/api/tenants/" + tenant, verify=False,
+            r = requests.put("https://os01:9200/_plugins/_security/api/tenants/" + tenant, verify=False,
                              auth=HTTPBasicAuth('admin', 'admin'), headers=headers, data=json.dumps(payload))
             print(r)
             # create role for the previous tenant
             headers = {'osd-xsrf': 'true',
                        'Content-Type': 'application/json'}
             payload = {"description": "A tenant for the human resources team."}
-            r = requests.put("https://172.17.0.1:9200/_plugins/_security/api/roles/" + tenant + "_user",
+            r = requests.put("https://os01:9200/_plugins/_security/api/roles/" + tenant + "_user",
                              verify=False,
                              auth=HTTPBasicAuth('admin', 'admin'), headers=headers, data=json.dumps(payload))
             print(r)
@@ -111,14 +111,14 @@ def opensearch_first_setup(es, vm_hosts):
                     'tenant_permissions': [
                         {'tenant_patterns': [str(tenant)], 'allowed_actions': ['kibana_all_read']}]
                     }
-            r = requests.put("https://172.17.0.1:9200/_plugins/_security/api/roles/" + tenant + "_user",
+            r = requests.put("https://os01:9200/_plugins/_security/api/roles/" + tenant + "_user",
                              verify=False,
                              auth=HTTPBasicAuth('admin', 'admin'), headers=headers, data=json.dumps(role))
             print(r)
             back_end_role = {
                 "backend_roles": [tenant],
             }
-            r = requests.put("https://172.17.0.1:9200/_plugins/_security/api/rolesmapping/" + tenant + "_user",
+            r = requests.put("https://os01:9200/_plugins/_security/api/rolesmapping/" + tenant + "_user",
                              verify=False,
                              auth=HTTPBasicAuth('admin', 'admin'), headers=headers, data=json.dumps(back_end_role))
             print(r)
