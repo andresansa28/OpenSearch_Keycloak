@@ -11,9 +11,36 @@
             <div class="d-flex justify-center">
                 <v-card class="pa-6" width="400" elevation="3">
                     <h3 class="text-h6 mb-4 text-center">Select OpenSearch Tenant</h3>
-                    <v-select v-model="selectedTenant" :items="tenants" item-title="name" item-value="id"
-                        label="Choose a tenant to analyze" prepend-icon="mdi-database" variant="outlined"
-                        density="comfortable" @update:model-value="onTenantChange" class="tenant-select"></v-select>
+
+                    <!-- Stato di caricamento -->
+                    <div v-if="tenantsLoading" class="text-center py-4">
+                        <v-progress-circular :size="30" :width="3" color="primary" indeterminate>
+                        </v-progress-circular>
+                        <p class="mt-2 text-caption">Loading available tenants...</p>
+                    </div>
+
+                    <!-- Errore nel caricamento -->
+                    <v-alert v-else-if="tenantsError" type="error" variant="tonal" class="mb-4" :text="tenantsError">
+                    </v-alert>
+
+                    <!-- Selezione tenant -->
+                    <v-select v-else :model-value="selectedTenant?.id" :items="tenants" item-title="displayName"
+                        item-value="id" label="Choose a tenant to analyze" prepend-icon="mdi-database"
+                        variant="outlined" density="comfortable" @update:model-value="onTenantChange"
+                        class="tenant-select" :disabled="tenants.length === 0">
+                    </v-select>
+
+                    <!-- Messaggio se non ci sono tenant -->
+                    <v-alert v-if="!tenantsLoading && !tenantsError && tenants.length === 0" type="info" variant="tonal"
+                        text="No tenants available. Contact your administrator.">
+                    </v-alert>
+
+                    <!-- Tenant corrente -->
+                    <div v-if="selectedTenant && !tenantsLoading" class="mt-3 text-center">
+                        <v-chip color="primary" variant="tonal" size="small">
+                            Current: {{ currentTenantName }}
+                        </v-chip>
+                    </div>
                 </v-card>
             </div>
         </div>
@@ -127,16 +154,22 @@ import IndustrialProtocolChart from '@/components/charts/IndustrialProtocolChart
 import ProtocolDistributionChart from '@/components/charts/ProtocolDistributionChart.vue'
 import TopIPsChart from '@/components/charts/TopIPsChart.vue'
 import TrafficOverTimeChart from '@/components/charts/TrafficOverTimeChart.vue'
-import { onMounted, ref } from 'vue'
+import { useTenant } from '@/composables/useTenant'
+import { useAuthStore } from '@/stores/auth'
+import { onMounted, ref, watch } from 'vue'
 
-const selectedTenant = ref(null)
-const tenants = ref([
-    { id: 'tenanto', name: 'Select a tenant...' },
-    { id: 'tenant1', name: 'Production' },
-    { id: 'tenant2', name: 'Staging' },
-    { id: 'tenant3', name: 'Development' },
-    { id: 'tenant4', name: 'Testing' }
-])
+// Usa il composable per gestire i tenant
+const {
+    tenants,
+    selectedTenant,
+    loading: tenantsLoading,
+    error: tenantsError,
+    fetchTenants,
+    selectTenant,
+    currentTenantName
+} = useTenant()
+
+const authStore = useAuthStore()
 
 const stats = ref({
     totalTraffic: 2547892734, // bytes
@@ -154,14 +187,42 @@ const formatBytes = (bytes) => {
 }
 
 const onTenantChange = (tenantId) => {
-    console.log('Selected tenant:', tenantId)
-    // Qui in futuro caricheremo i dati del tenant selezionato
+    console.log('Selected tenant ID:', tenantId)
+
+    // Trova il tenant selezionato e aggiorna lo stato
+    const tenant = tenants.value.find(t => t.id === tenantId)
+    if (tenant) {
+        selectTenant(tenant)
+        console.log('Tenant selected:', tenant)
+
+        // Qui in futuro caricheremo i dati specifici del tenant
+        // loadTenantData(tenant)
+    }
 }
 
-onMounted(() => {
-    // Imposta il primo tenant come default
-    if (tenants.value.length > 0) {
-        selectedTenant.value = tenants.value[0].id
+// Carica i tenant quando l'utente è autenticato
+const loadTenantsData = async () => {
+    if (authStore.isAuthenticated) {
+        try {
+            await fetchTenants()
+            console.log('Tenant caricati con successo')
+        } catch (error) {
+            console.error('Errore nel caricamento dei tenant:', error)
+        }
+    }
+}
+
+// Osserva i cambiamenti dello stato di autenticazione
+watch(() => authStore.isAuthenticated, async (isAuthenticated) => {
+    if (isAuthenticated) {
+        await loadTenantsData()
+    }
+}, { immediate: true })
+
+onMounted(async () => {
+    // Se l'utente è già autenticato, carica i tenant
+    if (authStore.isAuthenticated) {
+        await loadTenantsData()
     }
 })
 </script>

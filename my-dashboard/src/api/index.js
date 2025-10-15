@@ -4,6 +4,9 @@ import httpClient, { analyzerClient } from './http/client'
 // Esporta i client HTTP e gli endpoints per un facile utilizzo
 export { analyzerClient, API_ENDPOINTS, httpClient }
 
+// Alias per compatibilità
+export const api = httpClient
+
 // Utility per costruire query parameters
 export const buildQueryParams = (params) => {
     const searchParams = new URLSearchParams()

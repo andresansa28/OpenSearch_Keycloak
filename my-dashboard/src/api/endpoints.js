@@ -8,38 +8,28 @@ export const API_ENDPOINTS = {
         PROFILE: '/auth/profile'
     },
 
-    // Utenti
+    // Utenti (Keycloak User Management)
     USERS: {
         LIST: '/users',
-        CREATE: '/users',
-        GET: (id) => `/users/${id}`,
-        UPDATE: (id) => `/users/${id}`,
-        DELETE: (id) => `/users/${id}`
+        CREATE: '/user/create/',
+        UPDATE: '/user/update/',
+        DELETE: '/user/delete/',
+        USER_GROUPS: '/user/group/',
+        ADD_TO_GROUP: '/user/group/add/',
+        REMOVE_FROM_GROUP: '/user/group/remove/'
     },
 
-    // Analytics e dati di analisi
-    ANALYTICS: {
-        DASHBOARD_DATA: '/analytics/dashboard',
-        TRAFFIC_DATA: '/analytics/traffic',
-        PROTOCOL_DISTRIBUTION: '/analytics/protocols',
-        TOP_IPS: '/analytics/top-ips',
-        ANOMALIES: '/analytics/anomalies',
-        GEOGRAPHIC_CONNECTIONS: '/analytics/geographic',
-        INDUSTRIAL_PROTOCOLS: '/analytics/industrial-protocols'
+    // Gruppi (Keycloak Groups)
+    GROUPS: {
+        LIST: '/groups',
+        CREATE: '/group/create/',
+        DELETE: '/group/delete/'
     },
 
-    // OpenSearch
-    OPENSEARCH: {
-        SEARCH: '/opensearch/search',
-        INDICES: '/opensearch/indices',
-        LOGS: '/opensearch/logs'
-    },
-
-    // Sicurezza
-    SECURITY: {
-        THREATS: '/security/threats',
-        ALERTS: '/security/alerts',
-        INCIDENTS: '/security/incidents'
+    // OpenSearch Tenants
+    TENANTS: {
+        LIST: '/api/tenants',
+        INDICES: '/api/tenant'
     },
 
     // Analyzer

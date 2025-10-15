@@ -15,7 +15,7 @@ if test ! -f "$FILE"; then
     docker compose up -d keycloak
     while true
     do
-        STATUS=$(curl -k -s https://localhost:8443/auth/health/ready | jq -r '.status' 2>/dev/null)
+        STATUS=$(curl -k -s http://localhost:8080/auth/health/ready | jq -r '.status' 2>/dev/null)
         if [ "$STATUS" = "UP" ]; then
             break
         fi
@@ -55,7 +55,7 @@ if test -f "$FILE"; then
     docker compose up -d keycloak
     while true
     do
-        STATUS=$(curl -k -s https://localhost:8443/auth/health/ready | jq -r '.status' 2>/dev/null)
+        STATUS=$(curl -s http://localhost:8080/auth/health/ready | jq -r '.status' 2>/dev/null)
         if [ "$STATUS" = "UP" ]; then
             break
         fi

@@ -3,6 +3,8 @@ import analyticsService from './analytics.service'
 import analyzerService from './analyzer.service'
 import authService from './auth.service'
 import configService from './config.service'
+import keycloakService from './keycloak'
+import userManagementService from './userManagement.service'
 import usersService from './users.service'
 
 export {
@@ -10,7 +12,7 @@ export {
     analyzerService,
     authService,
     configService,
-    usersService
+    keycloakService, userManagementService, usersService
 }
 
 export default {
@@ -18,5 +20,7 @@ export default {
     analytics: analyticsService,
     users: usersService,
     analyzer: analyzerService,
-    config: configService
+    config: configService,
+    keycloak: keycloakService,
+    userManagement: userManagementService
 }

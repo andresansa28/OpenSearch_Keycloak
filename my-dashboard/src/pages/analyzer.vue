@@ -215,7 +215,7 @@
                     <div class="mb-4">
                         <v-chip :color="getDeploymentStatusColor(selectedDeploy)" size="small" class="mr-2">
                             <v-icon start>{{ isDeploymentOnline(selectedDeploy) ? 'mdi-wifi' : 'mdi-wifi-off'
-                                }}</v-icon>
+                            }}</v-icon>
                             {{ getDeploymentStatusText(selectedDeploy) }}
                         </v-chip>
 
@@ -464,7 +464,9 @@ const handleDeploySave = async (deployData) => {
     if (result.ok) {
         wizardDialog.value = false
         await refreshDeployments()
-        console.log('Deployment aggiunto con successo')
+        console.log(`Deployment '${deploymentData.name}' aggiunto con successo e gruppo creato automaticamente`)
+    } else {
+        console.error('Errore nell\'aggiunta del deployment:', result.error)
     }
 }
 
@@ -483,7 +485,9 @@ const deleteDeploy = async (deploy) => {
     const result = await removeDeployment(deployIP)
     if (result.ok) {
         await refreshDeployments()
-        console.log('Deployment rimosso con successo')
+        console.log(`Deployment '${deploy.name}' rimosso con successo e gruppo eliminato automaticamente`)
+    } else {
+        console.error('Errore nella rimozione del deployment:', result.error)
     }
 }
 

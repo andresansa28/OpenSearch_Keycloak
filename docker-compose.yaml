@@ -1,8 +1,8 @@
 services:
   keycloak:
     image: quay.io/keycloak/keycloak:22.0.0
-    container_name: keycloak   
-    command: ['start-dev','--health-enabled=true','--http-relative-path=/auth']
+    container_name: keycloak
+    command: ["start-dev","--http-enabled=true","--http-relative-path=/auth","--hostname-strict=false",'--health-enabled=true']
     environment:
       KC_DB: postgres
       KC_DB_URL_HOST: postgres
@@ -12,23 +12,15 @@ services:
       KC_DB_PASSWORD: password
       KEYCLOAK_ADMIN: ${KEYCLOAK_ADMIN_LOGIN}
       KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD}
-      KC_HTTPS_CERTIFICATE_FILE: /etc/x509/https/tls.crt
-      KC_HTTPS_CERTIFICATE_KEY_FILE: /etc/x509/https/tls.key
-      KC_HOSTNAME: keycloak.localhost
-      KC_HOSTNAME_PORT: "8443"
-      KC_HOSTNAME_STRICT: "false"
-      KC_HOSTNAME_STRICT_HTTPS: "false"
-      KC_PROXY: edge
-   
-    volumes:
-      - ./certs/keycloak:/etc/x509/https
+    # niente cert, niente hostname, niente proxy
     ports:
-      - 8443:8443
+      - "8080:8080"
     depends_on:
       - postgres
     networks:
       framework:
         ipv4_address: 172.18.0.2
+
     
   postgres:
     image: postgres

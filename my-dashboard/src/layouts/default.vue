@@ -23,7 +23,7 @@
                                 Analyzer
                             </div>
                             <div class="text-caption" style="line-height: 1;">
-                                {{ analyzerStatus ? 'Active' : 'Inactive' }}
+                                {{ analyzerStats ? 'Active' : 'Inactive' }}
                             </div>
                         </div>
                     </div>
@@ -32,33 +32,68 @@
 
             <v-spacer></v-spacer>
 
-            <!-- Menu utente -->
-            <v-btn icon>
-                <v-icon>mdi-account-circle</v-icon>
-            </v-btn>
+            <!-- Menu utente moderno -->
+            <div v-if="auth.isAuthenticated" class="d-flex align-center">
+                <!-- Avatar e info utente -->
+                <v-chip :prepend-avatar="userAvatar" variant="outlined" class="mr-3">
+                    {{ userDisplayName }}
+                </v-chip>
+
+                <!-- Menu dropdown -->
+                <v-menu>
+                    <template v-slot:activator="{ props }">
+                        <v-btn v-bind="props" icon="mdi-account-circle" variant="text" size="large">
+                        </v-btn>
+                    </template>
+
+                    <v-list min-width="200">
+                        <v-list-item :prepend-avatar="userAvatar" :subtitle="auth.profile?.email || 'Utente'"
+                            :title="userDisplayName">
+                            <template #append>
+                                <v-chip color="success" size="x-small" variant="dot">Online</v-chip>
+                            </template>
+                        </v-list-item>
+
+                        <v-divider></v-divider>
+
+                        <v-list-item prepend-icon="mdi-account-edit" title="Profilo" subtitle="Gestisci il tuo account">
+                        </v-list-item>
+
+                        <v-list-item prepend-icon="mdi-cog" title="Impostazioni" subtitle="Preferenze applicazione">
+                        </v-list-item>
+
+                        <v-divider></v-divider>
+
+                        <v-list-item prepend-icon="mdi-logout" title="Logout" subtitle="Disconnetti dall'account"
+                            @click="doLogout" class="text-error">
+                        </v-list-item>
+                    </v-list>
+                </v-menu>
+            </div>
         </v-app-bar>
 
         <!-- Navigazione laterale -->
-        <v-navigation-drawer
-        expand-on-hover
-        permanent
-        rail
-      >
-        <v-list>
-          <v-list-item
-            prepend-avatar="https://randomuser.me/api/portraits/women/85.jpg"
-            subtitle="admin_a88@gmailcom"
-            title="Admin Admin"
-          ></v-list-item>
-        </v-list>
+        <v-navigation-drawer expand-on-hover permanent rail>
+            <v-list>
+                <v-list-item :prepend-avatar="userAvatar"
+                    :subtitle="auth.profile?.email || (auth.isReady ? 'Utente' : 'Caricamento...')"
+                    :title="userDisplayName">
+                    <!-- Badge per indicare lo stato online/offline -->
+                    <template #append>
+                        <v-chip v-if="auth.isAuthenticated" color="success" size="x-small" variant="dot">
+                            Online
+                        </v-chip>
+                    </template>
+                </v-list-item>
+            </v-list>
 
-        <v-divider></v-divider>
-        <v-list density="compact" nav>
+            <v-divider></v-divider>
+            <v-list density="compact" nav>
                 <v-list-item v-for="item in navigationItems" :key="item.to" :prepend-icon="item.icon"
                     :title="item.title" :to="item.to" :value="item.to"></v-list-item>
             </v-list>
-      
-      </v-navigation-drawer>
+
+        </v-navigation-drawer>
 
         <!-- Contenuto principale -->
         <v-main>
@@ -68,9 +103,43 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { useAuthStore } from '@/stores/auth'
+import { computed, ref } from 'vue'
+
+const auth = useAuthStore()
+
+const doLogout = async () => {
+    await auth.logout()
+}
 
 const analyzerStats = ref(true) // Per futuro uso
+
+// Computed per il nome dell'utente
+const userDisplayName = computed(() => {
+    if (!auth.profile) return 'Utente'
+
+    // Priorità: firstName + lastName, poi username, poi email
+    if (auth.profile.firstName || auth.profile.lastName) {
+        return `${auth.profile.firstName || ''} ${auth.profile.lastName || ''}`.trim()
+    }
+
+    if (auth.profile.username) {
+        return auth.profile.username
+    }
+
+    if (auth.profile.email) {
+        return auth.profile.email.split('@')[0]
+    }
+
+    return 'Utente'
+})
+
+// Computed per l'avatar personalizzato
+const userAvatar = computed(() => {
+    const seed = auth.profile?.username || auth.profile?.email || 'default'
+    return `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(seed)}`
+})
+
 
 
 const navigationItems = [
@@ -104,7 +173,7 @@ const navigationItems = [
     top: 50%;
     transform: translate(-50%, -50%);
     width: 220px;
-    
+
 }
 
 .analyzer-status-card {

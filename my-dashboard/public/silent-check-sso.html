@@ -1,0 +1,9 @@
+<!doctype html>
+<html>
+  <body>
+    <script>
+      // Questo serve a Keycloak per completare il check-sso in un iframe
+      parent.postMessage(location.href, location.origin);
+    </script>
+  </body>
+</html>

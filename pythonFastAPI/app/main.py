@@ -21,7 +21,7 @@ import sslpatch, osQueryFile, dataFunctions
 
 with sslpatch.no_ssl_verification():
     idp = FastAPIKeycloak(
-        server_url="https://keycloak:8443/auth",
+        server_url="http://keycloak:8080/auth",
         client_id="fastAPI",
         client_secret="secret",
         admin_client_secret="secret",
@@ -33,6 +33,8 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
 auth = ('admin', 'admin')  # For testing only. Don't store credentials in code.
 ca_certs_path = '../code/app/ca/admin.pem'  # Provide a CA bundle if you use intermediate CAs with your root CA.
+
+#sostituire tutto con https://keycloak:8443
 
 es = OpenSearch(
     [{'host': 'os01', 'port': 9200}],
@@ -70,9 +72,9 @@ app.include_router(table.router)
 origins = [
     "http://localhost",
     "http://localhost:4200",
-    "http://localhost:3000",
     "http://localhost:5000",
     "http://localhost:5002",
+    "http://localhost:3000",
     "http://172.17.0.1:5000",
     "http://172.17.0.1:5002",
     "http://172.17.0.1:4200"
@@ -160,7 +162,7 @@ def create_group(item: GroupCreate):
             import requests
             
             # Ottieni il token admin
-            token_url = "https://172.17.0.1:8443/auth/realms/master/protocol/openid-connect/token"
+            token_url = "http://keycloak:8080/auth/realms/master/protocol/openid-connect/token"
             token_data = {
                 "username": "admin",
                 "password": "password",  # Credenziali corrette dal file .env
@@ -175,7 +177,7 @@ def create_group(item: GroupCreate):
             admin_token = token_response.json()["access_token"]
             
             # Crea il gruppo
-            groups_url = "https://172.17.0.1:8443/auth/admin/realms/ICSConsole/groups"
+            groups_url = "http://keycloak:8080/auth/admin/realms/ICSConsole/groups"
             group_data = {
                 "name": item.name,
                 "attributes": {
@@ -297,7 +299,7 @@ def delete_group(group_name: str):
             
             # Usa l'API diretta di Keycloak per eliminare il gruppo
             # Ottieni il token admin dal realm master
-            token_url = "https://172.17.0.1:8443/auth/realms/master/protocol/openid-connect/token"
+            token_url = "http://keycloak:8080/auth/realms/master/protocol/openid-connect/token"
             token_data = {
                 "username": "admin",
                 "password": "password",
@@ -313,7 +315,7 @@ def delete_group(group_name: str):
             
             # Elimina il gruppo usando il suo ID, nel realm ICSConsole
             group_id = existing_groups[0].id
-            delete_url = f"https://172.17.0.1:8443/auth/admin/realms/ICSConsole/groups/{group_id}"
+            delete_url = f"http://keycloak:8080/auth/admin/realms/ICSConsole/groups/{group_id}"
             
             headers = {
                 "Authorization": f"Bearer {admin_token}",
